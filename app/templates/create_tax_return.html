@@ -1,0 +1,47 @@
+{% extends "base.html" %}
+{% import "_components.html" as ui %}
+
+{% block title %}Create Client Work | Woodard Apps{% endblock %}
+
+{% block content %}
+{{ ui.page_header("Create Client Work", "Start a new intake package with default organizer requirements.") }}
+
+<div class="row">
+  <div class="col-12 col-lg-7">
+    <form method="post" class="card">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label" for="client_name">Client Name</label>
+            <input
+              class="form-control"
+              id="client_name"
+              type="text"
+              name="client_name"
+              value="{{ form_data.client_name if form_data else '' }}"
+              required
+            >
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="tax_year">Tax Year</label>
+            <input
+              class="form-control"
+              id="tax_year"
+              type="number"
+              name="tax_year"
+              min="1900"
+              max="2200"
+              value="{{ form_data.tax_year if form_data else '2025' }}"
+              required
+            >
+          </div>
+        </div>
+        <div class="mt-4 d-flex gap-2">
+          <button class="btn btn-primary" type="submit">Create Client Work</button>
+          <a class="btn btn-outline-secondary" href="{{ url_for('packages.index') }}">Cancel</a>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

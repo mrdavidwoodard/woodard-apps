@@ -20,6 +20,14 @@ DEFAULT_ORGANIZER_SECTIONS = [
     ("Other Taxes / Credits", None, 14),
 ]
 
+DEFAULT_PACKAGE_REQUIREMENTS = [
+    ("Client Information", "organizer", "Organizer"),
+    ("Wages", "w2", "W-2"),
+    ("Interest & Dividends", "1099_int", "1099-INT"),
+    ("Capital Gains", "1099_b", "1099-B"),
+    ("K-1 Income", "k1", "K-1"),
+]
+
 DOCUMENT_TYPE_SECTION_MAP = {
     "organizer": "Client Information",
     "source_document": "General",
@@ -76,6 +84,42 @@ def seed_default_organizer_sections():
         else:
             section.description = description
             section.display_order = display_order
+    db.session.flush()
+
+
+def create_default_sections(package):
+    """Ensure the standard organizer sections exist for an intake package."""
+    seed_default_organizer_sections()
+    return OrganizerSection.query.order_by(OrganizerSection.display_order.asc(), OrganizerSection.name.asc()).all()
+
+
+def create_default_requirements(package):
+    """Create the starter required checklist for a newly created intake package."""
+    create_default_sections(package)
+    existing_document_types = {
+        normalize_document_type(requirement.document_type)
+        for requirement in package.package_document_requirements.all()
+    }
+
+    for section_name, document_type, display_name in DEFAULT_PACKAGE_REQUIREMENTS:
+        normalized_type = normalize_document_type(document_type)
+        if normalized_type in existing_document_types:
+            continue
+
+        section = OrganizerSection.query.filter_by(name=section_name).first()
+        if not section:
+            section = OrganizerSection.query.filter_by(name="General").first()
+
+        requirement = PackageDocumentRequirement(
+            tax_return=package,
+            section=section,
+            name=display_name,
+            document_type=normalized_type,
+            display_name=display_name,
+            is_required=True,
+            is_received=False,
+        )
+        db.session.add(requirement)
     db.session.flush()
 
 

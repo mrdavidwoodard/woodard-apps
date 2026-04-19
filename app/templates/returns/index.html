@@ -4,7 +4,10 @@
 {% block title %}Client Work | Woodard Apps{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Client Work", "Track intake, review, and prep readiness for client tax work.") }}
+{% set actions %}
+  <a class="btn btn-primary" href="{{ url_for('returns.create_tax_return') }}">New Client Work</a>
+{% endset %}
+{{ ui.page_header("Client Work", "Track intake, review, and prep readiness for client tax work.", actions) }}
 
 <div class="table-responsive">
   <table class="table table-striped align-middle">
