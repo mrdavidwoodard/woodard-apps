@@ -172,6 +172,7 @@ class Document(db.Model):
     sharepoint_item_id = db.Column(db.String(255), nullable=True)
     sharepoint_drive_id = db.Column(db.String(255), nullable=True)
     sharepoint_upload_status = db.Column(db.String(50), nullable=True)
+    sharepoint_folder_path = db.Column(db.String(1024), nullable=True)
     uploaded_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     uploaded_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     ingested_at = db.Column(db.DateTime(timezone=True), nullable=True)

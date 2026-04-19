@@ -48,6 +48,8 @@
                 <span class="badge text-bg-light">Not Uploaded</span>
               {% endif %}
             </dd>
+            <dt class="col-sm-4">SharePoint Folder</dt>
+            <dd class="col-sm-8">{{ document.sharepoint_folder_path or "Not set" }}</dd>
             <dt class="col-sm-4">Local File</dt>
             <dd class="col-sm-8">
               {% if document.stored_file_path %}

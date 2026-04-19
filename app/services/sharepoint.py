@@ -1,4 +1,5 @@
 import logging
+import re
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote
@@ -65,6 +66,23 @@ def normalize_graph_path(path):
     return str(PurePosixPath(str(path).replace("\\", "/"))).strip("/")
 
 
+def slugify_client_name(client_name):
+    slug = re.sub(r"[^a-z0-9_]+", "", client_name.strip().lower().replace(" ", "_"))
+    slug = re.sub(r"_+", "_", slug).strip("_")
+    return slug or "client"
+
+
+def build_intake_folder_path(client_name, tax_year):
+    base_folder = current_app.config.get("SHAREPOINT_BASE_FOLDER") or ""
+    return normalize_graph_path(
+        PurePosixPath(base_folder)
+        / "Clients"
+        / slugify_client_name(client_name)
+        / str(tax_year)
+        / "01_Intake"
+    )
+
+
 def graph_path_url(drive_id, folder_path):
     encoded_path = quote(normalize_graph_path(folder_path), safe="/")
     return f"{GRAPH_BASE_URL}/drives/{drive_id}/root:/{encoded_path}"
@@ -110,6 +128,14 @@ def ensure_folder_path_exists(folder_path):
             return {"ok": False, "error": f"Folder creation failed: {create_response.status_code} {create_response.text}"}
 
     return {"ok": True}
+
+
+def upload_intake_document(local_file_path, client_name, tax_year, filename):
+    folder_path = build_intake_folder_path(client_name, tax_year)
+    logger.info("Generated SharePoint intake folder path: %s", folder_path)
+    result = upload_file_to_sharepoint(local_file_path, folder_path, filename)
+    result["folder_path"] = folder_path
+    return result
 
 
 def upload_file_to_sharepoint(local_file_path, destination_path, filename):
