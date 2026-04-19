@@ -14,6 +14,7 @@ class Config:
     SQLALCHEMY_DATABASE_URI = os.getenv("DATABASE_URL", f"sqlite:///{BASE_DIR / 'woodard_apps.db'}")
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", str(BASE_DIR / "uploads"))
     MAX_CONTENT_LENGTH = int(os.getenv("MAX_CONTENT_LENGTH", 25 * 1024 * 1024))
+    SHAREPOINT_ENABLED = os.getenv("SHAREPOINT_ENABLED", "false").lower() in {"1", "true", "yes", "on"}
     SHAREPOINT_TENANT_ID = os.getenv("SHAREPOINT_TENANT_ID")
     SHAREPOINT_CLIENT_ID = os.getenv("SHAREPOINT_CLIENT_ID")
     SHAREPOINT_CLIENT_SECRET = os.getenv("SHAREPOINT_CLIENT_SECRET")

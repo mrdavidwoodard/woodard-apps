@@ -37,7 +37,17 @@
               {% endif %}
             </dd>
             <dt class="col-sm-4">SharePoint Status</dt>
-            <dd class="col-sm-8">{{ document.sharepoint_upload_status or "not configured" }}</dd>
+            <dd class="col-sm-8">
+              {% if document.sharepoint_upload_status == "mock_uploaded" %}
+                <span class="badge text-bg-info">Mock Uploaded (Dev Mode)</span>
+              {% elif document.sharepoint_upload_status == "uploaded" %}
+                <span class="badge text-bg-success">Uploaded</span>
+              {% elif document.sharepoint_upload_status == "failed" %}
+                <span class="badge text-bg-danger">Failed</span>
+              {% else %}
+                <span class="badge text-bg-light">Not Uploaded</span>
+              {% endif %}
+            </dd>
             <dt class="col-sm-4">Local File</dt>
             <dd class="col-sm-8">
               {% if document.stored_file_path %}

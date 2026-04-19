@@ -1,3 +1,5 @@
+import logging
+from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
@@ -6,6 +8,7 @@ from flask import current_app
 
 
 GRAPH_BASE_URL = "https://graph.microsoft.com/v1.0"
+logger = logging.getLogger(__name__)
 
 
 class SharePointError(Exception):
@@ -21,6 +24,10 @@ def is_configured():
         current_app.config.get("SHAREPOINT_DRIVE_ID"),
     )
     return all(required_values)
+
+
+def is_enabled():
+    return current_app.config.get("SHAREPOINT_ENABLED", False)
 
 
 def get_access_token():
@@ -106,12 +113,25 @@ def ensure_folder_path_exists(folder_path):
 
 
 def upload_file_to_sharepoint(local_file_path, destination_path, filename):
-    if not is_configured():
-        return {"ok": False, "error": "SharePoint is not configured."}
-
     local_path = Path(local_file_path)
     if not local_path.exists():
         return {"ok": False, "error": f"Local file not found: {local_path}"}
+
+    if not is_enabled():
+        logger.info("Using mock SharePoint mode for upload: %s", local_path)
+        destination_file_path = normalize_graph_path(PurePosixPath(destination_path) / filename)
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
+        return {
+            "ok": True,
+            "mode": "mock",
+            "web_url": f"https://mock-sharepoint.local/{quote(destination_file_path, safe='/')}",
+            "item_id": f"mock-item-{timestamp}",
+            "drive_id": "mock-drive",
+        }
+
+    logger.info("Using real SharePoint mode for upload: %s", local_path)
+    if not is_configured():
+        return {"ok": False, "mode": "real", "error": "SharePoint is enabled but not fully configured."}
 
     folder_result = ensure_folder_path_exists(destination_path)
     if not folder_result.get("ok"):
@@ -127,11 +147,13 @@ def upload_file_to_sharepoint(local_file_path, destination_path, filename):
         response = requests.put(upload_url, headers=graph_headers(access_token), data=file_handle, timeout=120)
 
     if response.status_code not in {200, 201}:
-        return {"ok": False, "error": f"File upload failed: {response.status_code} {response.text}"}
+        return {"ok": False, "mode": "real", "error": f"File upload failed: {response.status_code} {response.text}"}
 
     payload = response.json()
+    logger.info("Real SharePoint upload succeeded: item_id=%s", payload.get("id"))
     return {
         "ok": True,
+        "mode": "real",
         "web_url": payload.get("webUrl"),
         "item_id": payload.get("id"),
         "drive_id": payload.get("parentReference", {}).get("driveId", drive_id),

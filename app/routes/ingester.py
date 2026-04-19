@@ -126,22 +126,22 @@ def upload():
                 uploaded_by_user=current_user,
             )
 
-            if sharepoint.is_configured():
-                folder_path = build_sharepoint_folder_path(client.display_name, tax_year_int)
-                try:
-                    upload_result = sharepoint.upload_file_to_sharepoint(destination, folder_path, destination.name)
-                except Exception as exc:
-                    upload_result = {"ok": False, "error": str(exc)}
+            folder_path = build_sharepoint_folder_path(client.display_name, tax_year_int)
+            try:
+                upload_result = sharepoint.upload_file_to_sharepoint(destination, folder_path, destination.name)
+            except Exception as exc:
+                upload_result = {"ok": False, "error": str(exc)}
 
-                if upload_result.get("ok"):
-                    document.sharepoint_file_url = upload_result.get("web_url")
-                    document.sharepoint_item_id = upload_result.get("item_id")
-                    document.sharepoint_drive_id = upload_result.get("drive_id")
-                    document.sharepoint_upload_status = "uploaded"
-                else:
-                    document.sharepoint_upload_status = "failed"
-                    logger.warning("SharePoint upload failed: %s", upload_result.get("error"))
-                    flash("Document saved locally, but SharePoint upload failed.", "warning")
+            if upload_result.get("ok"):
+                document.sharepoint_file_url = upload_result.get("web_url")
+                document.sharepoint_item_id = upload_result.get("item_id")
+                document.sharepoint_drive_id = upload_result.get("drive_id")
+                document.sharepoint_upload_status = "mock_uploaded" if upload_result.get("mode") == "mock" else "uploaded"
+                logger.info("SharePoint upload succeeded in %s mode for file %s", upload_result.get("mode"), destination.name)
+            else:
+                document.sharepoint_upload_status = "failed"
+                logger.warning("SharePoint upload failed: %s", upload_result.get("error"))
+                flash("Document saved locally, but SharePoint upload failed.", "warning")
 
             db.session.add(document)
             db.session.commit()

@@ -70,7 +70,11 @@
                 <td>
                   {% if document.sharepoint_file_url %}
                     <a href="{{ document.sharepoint_file_url }}" target="_blank" rel="noopener">
-                      <span class="badge text-bg-success">uploaded</span>
+                      {% if document.sharepoint_upload_status == "mock_uploaded" %}
+                        <span class="badge text-bg-info">mock uploaded</span>
+                      {% else %}
+                        <span class="badge text-bg-success">uploaded</span>
+                      {% endif %}
                     </a>
                   {% elif document.sharepoint_upload_status == "failed" %}
                     <span class="badge text-bg-danger">failed</span>
