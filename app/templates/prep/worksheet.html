@@ -53,9 +53,9 @@
           {{ ui.section_title("Workflow Status") }}
           <dl class="row mb-0 mt-3">
             <dt class="col-sm-5">Intake Status</dt>
-            <dd class="col-sm-7">{{ ui.status_badge(package.status) }}</dd>
+            <dd class="col-sm-7">{{ intake_status_label(package) }}</dd>
             <dt class="col-sm-5">Prep Status</dt>
-            <dd class="col-sm-7">{{ ui.status_badge(package.status) if package.status in ["ready_for_prep", "in_prep", "in_review"] else "Not Started" }}</dd>
+            <dd class="col-sm-7">{{ prep_status_label(package) }}</dd>
             <dt class="col-sm-5">Review Completed</dt>
             <dd class="col-sm-7">{{ package.review_completed_at.strftime("%Y-%m-%d %I:%M %p") if package.review_completed_at else "" }}</dd>
             <dt class="col-sm-5">Prep Started</dt>
@@ -71,7 +71,16 @@
   {% for section, rows in worksheet_sections %}
     <div class="card">
       <div class="card-body">
-        {{ ui.section_title(section) }}
+        <div class="d-flex flex-wrap justify-content-between gap-2">
+          {{ ui.section_title(section) }}
+          <form method="post" action="{{ url_for('prep.update_section_reviewed', package_id=package.id) }}">
+            <input type="hidden" name="section" value="{{ section }}">
+            {% set section_reviewed = worksheet_state.sections.get(section) %}
+            <button class="btn btn-sm {% if section_reviewed %}btn-success{% else %}btn-outline-secondary{% endif %}" type="submit">
+              {{ "Section Reviewed" if section_reviewed else "Mark Section Reviewed" }}
+            </button>
+          </form>
+        </div>
         <div class="table-responsive mt-3">
           <table class="table table-striped align-middle mb-0">
             <thead>
@@ -80,13 +89,20 @@
                 <th scope="col">Value</th>
                 <th scope="col">Source</th>
                 <th scope="col">Confidence</th>
+                <th scope="col">Prep Checks</th>
               </tr>
             </thead>
             <tbody>
               {% for row in rows %}
+                {% set field_state = worksheet_state.fields.get(row.field_key, {}) %}
                 <tr>
                   <td>{{ row.label }}</td>
-                  <td>{{ row.value if row.value is not none else "" }}</td>
+                  <td>
+                    <div class="d-flex flex-wrap align-items-center gap-2">
+                      <span>{{ row.value if row.value is not none else "" }}</span>
+                      <button class="btn btn-sm btn-outline-secondary copy-value-btn" type="button" data-copy-value="{{ row.value if row.value is not none else '' }}">Copy</button>
+                    </div>
+                  </td>
                   <td>
                     <a href="{{ url_for('documents.detail', document_id=row.source_document.id) }}">
                       {{ row.source_document.original_file_name or row.source_document.file_name }}
@@ -99,10 +115,24 @@
                       <span class="text-muted">None</span>
                     {% endif %}
                   </td>
+                  <td>
+                    <div class="d-flex flex-wrap gap-2">
+                      <form method="post" action="{{ url_for('prep.update_field_action', package_id=package.id) }}">
+                        <input type="hidden" name="field_key" value="{{ row.field_key }}">
+                        <input type="hidden" name="action" value="confirmed">
+                        <button class="btn btn-sm {% if field_state.get('confirmed') %}btn-success{% else %}btn-outline-secondary{% endif %}" type="submit">Confirmed</button>
+                      </form>
+                      <form method="post" action="{{ url_for('prep.update_field_action', package_id=package.id) }}">
+                        <input type="hidden" name="field_key" value="{{ row.field_key }}">
+                        <input type="hidden" name="action" value="needs_review">
+                        <button class="btn btn-sm {% if field_state.get('needs_review') %}btn-warning{% else %}btn-outline-warning{% endif %}" type="submit">Needs Review</button>
+                      </form>
+                    </div>
+                  </td>
                 </tr>
               {% else %}
                 <tr>
-                  <td class="text-muted text-center py-4" colspan="4">No prep worksheet values in this section.</td>
+                  <td class="text-muted text-center py-4" colspan="5">{{ empty_message_for_section(section) }}</td>
                 </tr>
               {% endfor %}
             </tbody>
@@ -125,4 +155,24 @@
     </div>
   </div>
 </div>
+
+<div class="copy-feedback" id="copyFeedback" role="status">Copied value to clipboard.</div>
+<script>
+  document.querySelectorAll(".copy-value-btn").forEach((button) => {
+    button.addEventListener("click", async () => {
+      const value = button.dataset.copyValue || "";
+      try {
+        await navigator.clipboard.writeText(value);
+        const feedback = document.getElementById("copyFeedback");
+        feedback.classList.add("show");
+        setTimeout(() => feedback.classList.remove("show"), 1600);
+      } catch (error) {
+        button.textContent = "Copy failed";
+        setTimeout(() => {
+          button.textContent = "Copy";
+        }, 1600);
+      }
+    });
+  });
+</script>
 {% endblock %}

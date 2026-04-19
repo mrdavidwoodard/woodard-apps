@@ -1,3 +1,4 @@
+import copy
 import json
 
 from flask import Blueprint, flash, redirect, render_template, request, url_for
@@ -47,7 +48,7 @@ def confidence_level(confidence):
 
 def confidence_badge_label(confidence):
     level = confidence_level(confidence)
-    return level.title() if level else ""
+    return level.upper() if level else ""
 
 
 def confidence_badge_class(confidence):
@@ -57,6 +58,44 @@ def confidence_badge_class(confidence):
 
 def readable_field_label(field_name):
     return (field_name or "").replace("_", " ").title()
+
+
+def worksheet_state_for(package):
+    return copy.deepcopy(package.prep_worksheet_state or {"fields": {}, "sections": {}})
+
+
+def worksheet_field_key(document, label):
+    safe_label = (label or "").lower().replace(" ", "_").replace("/", "_")
+    return f"doc-{document.id}:{safe_label}"
+
+
+def empty_message_for_section(section):
+    messages = {
+        "Taxpayer / Client Info": "No organizer or taxpayer profile values have been extracted yet.",
+        "Wages and Withholding": "No W-2 wage or withholding values are available yet.",
+        "Interest and Dividend Income": "No interest or dividend income values are available yet.",
+        "Business / Self-Employment": "No business or self-employment values are available yet.",
+        "K-1 / Pass-Through Income": "No K-1 or pass-through income values are available yet.",
+        "Deductions / Mortgage / Prior Year": "No deduction, mortgage, or prior-year values are available yet.",
+        "Notes / Follow-Up": "No miscellaneous extracted values are available yet. Use prep notes below for follow-up items.",
+    }
+    return messages.get(section, "No prep worksheet values are available in this section yet.")
+
+
+def intake_status_label(package):
+    if package.status in {"waiting_on_client", "new"}:
+        return "Incomplete"
+    if package.extraction_completed_at or package.status in {"ready_for_prep", "in_prep", "in_review"}:
+        return "Complete"
+    return "In Progress"
+
+
+def prep_status_label(package):
+    if package.prep_completed_at or package.status == "in_review":
+        return "Complete"
+    if package.prep_started_at or package.status == "in_prep":
+        return "In Progress"
+    return "Not Started"
 
 
 PREP_SECTION_ORDER = [
@@ -106,6 +145,7 @@ def worksheet_rows_for_document(document, latest_result):
                     "value": value,
                     "source_document": document,
                     "confidence": confidence if isinstance(confidence, (int, float)) else None,
+                    "field_key": worksheet_field_key(document, readable_field_label(field_name)),
                 }
             )
         return rows
@@ -119,6 +159,7 @@ def worksheet_rows_for_document(document, latest_result):
                 "value": value,
                 "source_document": document,
                 "confidence": None,
+                "field_key": worksheet_field_key(document, readable_field_label(field_name)),
             }
         )
     return rows
@@ -217,6 +258,10 @@ def worksheet(package_id):
         "prep/worksheet.html",
         package=package,
         worksheet_sections=prep_worksheet_sections_for(package),
+        worksheet_state=worksheet_state_for(package),
+        empty_message_for_section=empty_message_for_section,
+        intake_status_label=intake_status_label,
+        prep_status_label=prep_status_label,
         confidence_badge_class=confidence_badge_class,
         confidence_badge_label=confidence_badge_label,
     )
@@ -229,6 +274,45 @@ def update_notes(package_id):
     package.prep_notes = request.form.get("prep_notes", "").strip() or None
     db.session.commit()
     flash("Prep worksheet notes saved.", "success")
+    return redirect(url_for("prep.worksheet", package_id=package.id))
+
+
+@prep_bp.route("/package/<int:package_id>/field-action", methods=["POST"])
+@login_required
+def update_field_action(package_id):
+    package = TaxReturn.query.get_or_404(package_id)
+    field_key = request.form.get("field_key", "").strip()
+    action = request.form.get("action", "").strip()
+    state = worksheet_state_for(package)
+    state.setdefault("fields", {})
+    field_state = state["fields"].setdefault(field_key, {"confirmed": False, "needs_review": False})
+
+    if action == "confirmed":
+        field_state["confirmed"] = not field_state.get("confirmed", False)
+        if field_state["confirmed"]:
+            field_state["needs_review"] = False
+    elif action == "needs_review":
+        field_state["needs_review"] = not field_state.get("needs_review", False)
+        if field_state["needs_review"]:
+            field_state["confirmed"] = False
+
+    package.prep_worksheet_state = state
+    db.session.commit()
+    flash("Worksheet field updated.", "success")
+    return redirect(url_for("prep.worksheet", package_id=package.id))
+
+
+@prep_bp.route("/package/<int:package_id>/section-reviewed", methods=["POST"])
+@login_required
+def update_section_reviewed(package_id):
+    package = TaxReturn.query.get_or_404(package_id)
+    section = request.form.get("section", "").strip()
+    state = worksheet_state_for(package)
+    state.setdefault("sections", {})
+    state["sections"][section] = not state["sections"].get(section, False)
+    package.prep_worksheet_state = state
+    db.session.commit()
+    flash("Worksheet section updated.", "success")
     return redirect(url_for("prep.worksheet", package_id=package.id))
 
 
