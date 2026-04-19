@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}Returns | Woodard Apps{% endblock %}
+
+{% block content %}
+<h1 class="h3 mb-3">Returns</h1>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th scope="col">Client</th>
+        <th scope="col">Tax Year</th>
+        <th scope="col">Return Type</th>
+        <th scope="col">Status</th>
+        <th scope="col"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in returns %}
+        <tr>
+          <td>
+            <a href="{{ url_for('returns.returns_detail', tax_return_id=item.id) }}">{{ item.client.display_name }}</a>
+          </td>
+          <td>{{ item.tax_year }}</td>
+          <td>{{ item.return_type }}</td>
+          <td>{{ item.status }}</td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.returns_detail', tax_return_id=item.id) }}">View</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td class="text-muted text-center py-4" colspan="5">No tax returns have been created yet.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

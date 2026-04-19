@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Return Detail | Woodard Apps{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column gap-3">
+  <div class="d-flex justify-content-between align-items-start gap-3">
+    <div>
+      <h1 class="h3 mb-1">{{ tax_return.client.display_name }}</h1>
+      <p class="text-muted mb-0">{{ tax_return.tax_year }} {{ tax_return.return_type }} return</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('returns.returns_index') }}">Back to Returns</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Client Info</h2>
+          <dl class="row mb-0">
+            <dt class="col-sm-4">Name</dt>
+            <dd class="col-sm-8">{{ tax_return.client.display_name }}</dd>
+            <dt class="col-sm-4">Type</dt>
+            <dd class="col-sm-8">{{ tax_return.client.client_type }}</dd>
+            <dt class="col-sm-4">Active</dt>
+            <dd class="col-sm-8">{{ "Yes" if tax_return.client.is_active else "No" }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Tax Return Info</h2>
+          <dl class="row mb-0">
+            <dt class="col-sm-4">Tax Year</dt>
+            <dd class="col-sm-8">{{ tax_return.tax_year }}</dd>
+            <dt class="col-sm-4">Return Type</dt>
+            <dd class="col-sm-8">{{ tax_return.return_type }}</dd>
+            <dt class="col-sm-4">Status</dt>
+            <dd class="col-sm-8">{{ tax_return.status }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5">Documents</h2>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Document Type</th>
+              <th scope="col">File Name</th>
+              <th scope="col">Status</th>
+              <th scope="col">Uploaded</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for document in documents %}
+              <tr>
+                <td>{{ document.document_type }}</td>
+                <td>{{ document.original_file_name or document.file_name }}</td>
+                <td>{{ document.status }}</td>
+                <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
+                <td class="text-end">
+                  {% if document.stored_file_path %}
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.document_file', document_id=document.id) }}" target="_blank" rel="noopener">Open</a>
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td class="text-muted text-center py-4" colspan="5">No documents have been uploaded for this return.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

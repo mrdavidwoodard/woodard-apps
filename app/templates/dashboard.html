@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard | Woodard Apps{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column gap-3">
+  <div>
+    <h1 class="h3">Woodard Apps Dashboard</h1>
+    <p class="text-muted mb-0">Welcome, {{ current_user.full_name }}.</p>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Clients</div>
+          <div class="display-6">{{ counts.clients }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Tax Returns</div>
+          <div class="display-6">{{ counts.tax_returns }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Documents</div>
+          <div class="display-6">{{ counts.documents }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5">Recent Uploaded Documents</h2>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Client</th>
+              <th scope="col">Document</th>
+              <th scope="col">Type</th>
+              <th scope="col">Uploaded</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for document in recent_documents %}
+              <tr>
+                <td>{{ document.client.display_name }}</td>
+                <td>{{ document.original_file_name or document.file_name }}</td>
+                <td>{{ document.document_type }}</td>
+                <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.returns_detail', tax_return_id=document.tax_return_id) }}">View Return</a>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td class="text-muted text-center py-4" colspan="5">No documents have been uploaded yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Ingester</h2>
+          <p class="text-muted">Prepare return intake submissions for processing.</p>
+          <a class="btn btn-primary" href="{{ url_for('ingester.upload') }}">Open Ingester</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Returns</h2>
+          <p class="text-muted">Review return status across clients and tax years.</p>
+          <a class="btn btn-primary" href="{{ url_for('returns.returns_index') }}">View Returns</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

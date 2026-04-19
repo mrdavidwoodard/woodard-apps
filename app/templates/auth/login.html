@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block title %}Login | Woodard Apps{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card shadow-sm">
+      <div class="card-body">
+        <h1 class="h4 mb-3">Sign in</h1>
+        <form method="post" action="{{ url_for('auth.login', next=request.args.get('next')) }}">
+          <div class="mb-3">
+            <label class="form-label" for="email">Email</label>
+            <input class="form-control" id="email" name="email" type="email" value="{{ email or '' }}" required autofocus>
+          </div>
+          <div class="mb-3">
+            <label class="form-label" for="password">Password</label>
+            <input class="form-control" id="password" name="password" type="password" required>
+          </div>
+          <button class="btn btn-primary w-100" type="submit">Login</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

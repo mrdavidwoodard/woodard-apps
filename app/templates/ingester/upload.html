@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+
+{% block title %}Ingester | Woodard Apps{% endblock %}
+
+{% block content %}
+<div class="row">
+  <div class="col-12 col-lg-8">
+    <h1 class="h3 mb-3">Ingester</h1>
+    {% if detail_url %}
+      <div class="alert alert-success">
+        Upload complete. <a class="alert-link" href="{{ detail_url }}">View the return record</a>.
+      </div>
+    {% endif %}
+    <form method="post" enctype="multipart/form-data" class="card">
+      <div class="card-body">
+        <div class="row g-3">
+          <div class="col-12 col-md-8">
+            <label class="form-label" for="client_display_name">Client display name</label>
+            <input class="form-control" id="client_display_name" name="client_display_name" type="text" value="{{ form_data.client_display_name if form_data else '' }}" required>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="client_type">Client type</label>
+            <select class="form-select" id="client_type" name="client_type" required>
+              {% set selected_client_type = form_data.client_type if form_data else 'individual' %}
+              <option value="individual" {% if selected_client_type == 'individual' %}selected{% endif %}>Individual</option>
+              <option value="business" {% if selected_client_type == 'business' %}selected{% endif %}>Business</option>
+              <option value="trust" {% if selected_client_type == 'trust' %}selected{% endif %}>Trust</option>
+              <option value="other" {% if selected_client_type == 'other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="tax_year">Tax year</label>
+            <input class="form-control" id="tax_year" name="tax_year" type="number" min="1900" max="2200" value="{{ form_data.tax_year if form_data else '' }}" required>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="return_type">Return type</label>
+            {% set selected_return_type = form_data.return_type if form_data else '1040' %}
+            <select class="form-select" id="return_type" name="return_type" required>
+              <option value="1040" {% if selected_return_type == '1040' %}selected{% endif %}>1040</option>
+              <option value="1065" {% if selected_return_type == '1065' %}selected{% endif %}>1065</option>
+              <option value="1120" {% if selected_return_type == '1120' %}selected{% endif %}>1120</option>
+              <option value="1120S" {% if selected_return_type == '1120S' %}selected{% endif %}>1120S</option>
+              <option value="1041" {% if selected_return_type == '1041' %}selected{% endif %}>1041</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-4">
+            <label class="form-label" for="document_type">Document type</label>
+            {% set selected_document_type = form_data.document_type if form_data else 'source_document' %}
+            <select class="form-select" id="document_type" name="document_type" required>
+              <option value="source_document" {% if selected_document_type == 'source_document' %}selected{% endif %}>Source document</option>
+              <option value="w2" {% if selected_document_type == 'w2' %}selected{% endif %}>W-2</option>
+              <option value="1099" {% if selected_document_type == '1099' %}selected{% endif %}>1099</option>
+              <option value="organizer" {% if selected_document_type == 'organizer' %}selected{% endif %}>Organizer</option>
+              <option value="other" {% if selected_document_type == 'other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="source">Source</label>
+            {% set selected_source = form_data.source if form_data else 'manual_upload' %}
+            <select class="form-select" id="source" name="source" required>
+              <option value="manual_upload" {% if selected_source == 'manual_upload' %}selected{% endif %}>Manual upload</option>
+              <option value="client_portal" {% if selected_source == 'client_portal' %}selected{% endif %}>Client portal</option>
+              <option value="email" {% if selected_source == 'email' %}selected{% endif %}>Email</option>
+              <option value="other" {% if selected_source == 'other' %}selected{% endif %}>Other</option>
+            </select>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="document">Tax document</label>
+            <input class="form-control" id="document" name="document" type="file" accept=".pdf,.png,.jpg,.jpeg" required>
+            <div class="form-text">PDF, PNG, JPG, or JPEG. Maximum size is 25 MB.</div>
+          </div>
+        </div>
+        <div class="mt-4">
+          <button class="btn btn-primary" type="submit">Upload Document</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
