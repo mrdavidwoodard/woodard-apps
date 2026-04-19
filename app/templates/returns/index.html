@@ -1,9 +1,10 @@
 {% extends "base.html" %}
+{% import "_components.html" as ui %}
 
 {% block title %}Returns | Woodard Apps{% endblock %}
 
 {% block content %}
-<h1 class="h3 mb-3">Returns</h1>
+{{ ui.page_header("Returns", "Browse tax returns and open return detail pages.") }}
 
 <div class="table-responsive">
   <table class="table table-striped align-middle">
@@ -24,7 +25,7 @@
           </td>
           <td>{{ item.tax_year }}</td>
           <td>{{ item.return_type }}</td>
-          <td>{{ item.status }}</td>
+          <td>{{ ui.status_badge(item.status) }}</td>
           <td class="text-end">
             <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.returns_detail', tax_return_id=item.id) }}">View</a>
           </td>

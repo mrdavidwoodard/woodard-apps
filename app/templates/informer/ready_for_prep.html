@@ -1,15 +1,11 @@
 {% extends "base.html" %}
+{% import "_components.html" as ui %}
 
 {% block title %}Ready for Prep | Woodard Apps{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-  <div>
-    <h1 class="h3 mb-1">Ready for Prep</h1>
-    <p class="text-muted mb-0">Returns where all uploaded documents are approved and the client is not blocking progress.</p>
-  </div>
-  <a class="btn btn-outline-secondary" href="{{ url_for('informer.overview') }}">Informer Overview</a>
-</div>
+{% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('informer.overview') }}">Informer Overview</a>{% endset %}
+{{ ui.page_header("Ready for Prep", "Returns where all uploaded documents are approved and the client is not blocking progress.", actions) }}
 
 <div class="table-responsive">
   <table class="table table-striped align-middle">
@@ -30,7 +26,7 @@
           <td>{{ tax_return.client.display_name }}</td>
           <td>{{ tax_return.tax_year }}</td>
           <td>{{ tax_return.return_type }}</td>
-          <td>{{ tax_return.status }}</td>
+          <td>{{ ui.status_badge(tax_return.status) }}</td>
           <td>{{ row.document_count }}</td>
           <td class="text-end">
             <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.returns_detail', tax_return_id=tax_return.id) }}">Open Return</a>

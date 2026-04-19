@@ -1,162 +1,98 @@
 {% extends "base.html" %}
+{% import "_components.html" as ui %}
 
 {% block title %}Dashboard | Woodard Apps{% endblock %}
 
 {% block content %}
-<div class="d-flex flex-column gap-3">
-  <div>
-    <h1 class="h3">Woodard Apps Dashboard</h1>
-    <p class="text-muted mb-0">Welcome, {{ current_user.full_name }}.</p>
-  </div>
+{{ ui.page_header("Woodard Apps Dashboard", "Welcome, " ~ current_user.full_name ~ ". Here is the current operations snapshot.") }}
 
-  <div class="row g-3">
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="text-muted small">Clients</div>
-          <div class="display-6">{{ counts.clients }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="text-muted small">Tax Returns</div>
-          <div class="display-6">{{ counts.tax_returns }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="text-muted small">Documents</div>
-          <div class="display-6">{{ counts.documents }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="text-muted small">Extraction Jobs</div>
-          <div class="display-6">{{ counts.extraction_jobs }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="text-muted small">Extraction Results</div>
-          <div class="display-6">{{ counts.extraction_results }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="text-muted small">Pending Review</div>
-          <div class="display-6">{{ counts.documents_pending_review }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="text-muted small">Ready for Prep</div>
-          <div class="display-6">{{ counts.returns_ready_for_prep }}</div>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="text-muted small">In Prep</div>
-          <div class="display-6">{{ counts.returns_in_prep }}</div>
-        </div>
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Clients", counts.clients) }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Tax Returns", counts.tax_returns) }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Documents", counts.documents) }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Pending Review", counts.documents_pending_review, url_for('compiler.queue'), "Open Compiler") }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Ready for Prep", counts.returns_ready_for_prep, url_for('prep.queue'), "Open Prep") }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("In Prep", counts.returns_in_prep) }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Extraction Jobs", counts.extraction_jobs) }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Extraction Results", counts.extraction_results) }}</div>
+</div>
+
+<div class="row g-3 mb-4">
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">Ingester</h2>
+        <p class="text-muted">Upload source documents and create intake records.</p>
+        <a class="btn btn-primary" href="{{ url_for('ingester.upload') }}">Open Ingester</a>
       </div>
     </div>
   </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">Informer</h2>
+        <p class="text-muted">Monitor queues, exceptions, and operational status.</p>
+        <a class="btn btn-primary" href="{{ url_for('informer.overview') }}">Open Informer</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">Compiler</h2>
+        <p class="text-muted">Review extracted data and approve documents.</p>
+        <a class="btn btn-primary" href="{{ url_for('compiler.queue') }}">Open Compiler</a>
+      </div>
+    </div>
+  </div>
+  <div class="col-12 col-md-6 col-xl-3">
+    <div class="card h-100">
+      <div class="card-body">
+        <h2 class="h5">Prep</h2>
+        <p class="text-muted">Stage approved returns for preparation.</p>
+        <a class="btn btn-primary" href="{{ url_for('prep.queue') }}">Open Prep</a>
+      </div>
+    </div>
+  </div>
+</div>
 
-  <div class="card">
-    <div class="card-body">
-      <h2 class="h5">Recent Uploaded Documents</h2>
-      <div class="table-responsive">
-        <table class="table table-striped align-middle mb-0">
-          <thead>
+<div class="card">
+  <div class="card-body">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <h2 class="h5 mb-0">Recent Uploaded Documents</h2>
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.returns_index') }}">View Returns</a>
+    </div>
+    <div class="table-responsive">
+      <table class="table table-striped align-middle">
+        <thead>
+          <tr>
+            <th scope="col">Client</th>
+            <th scope="col">Document</th>
+            <th scope="col">Type</th>
+            <th scope="col">Status</th>
+            <th scope="col">Uploaded</th>
+            <th scope="col"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for document in recent_documents %}
             <tr>
-              <th scope="col">Client</th>
-              <th scope="col">Document</th>
-              <th scope="col">Type</th>
-              <th scope="col">Uploaded</th>
-              <th scope="col"></th>
+              <td>{{ document.client.display_name }}</td>
+              <td>{{ document.original_file_name or document.file_name }}</td>
+              <td>{{ document.document_type }}</td>
+              <td>{{ ui.status_badge(document.status) }}</td>
+              <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
+              <td class="text-end">
+                <a class="btn btn-sm btn-outline-primary" href="{{ url_for('documents.detail', document_id=document.id) }}">View</a>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {% for document in recent_documents %}
-              <tr>
-                <td>{{ document.client.display_name }}</td>
-                <td>{{ document.original_file_name or document.file_name }}</td>
-                <td>{{ document.document_type }}</td>
-                <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
-                <td class="text-end">
-                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('documents.detail', document_id=document.id) }}">View Document</a>
-                </td>
-              </tr>
-            {% else %}
-              <tr>
-                <td class="text-muted text-center py-4" colspan="5">No documents have been uploaded yet.</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3">
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <h2 class="h5">Ingester</h2>
-          <p class="text-muted">Prepare return intake submissions for processing.</p>
-          <a class="btn btn-primary" href="{{ url_for('ingester.upload') }}">Open Ingester</a>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <h2 class="h5">Returns</h2>
-          <p class="text-muted">Review return status across clients and tax years.</p>
-          <a class="btn btn-primary" href="{{ url_for('returns.returns_index') }}">View Returns</a>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <h2 class="h5">Informer</h2>
-          <p class="text-muted">Monitor operational queues and review status.</p>
-          <a class="btn btn-primary" href="{{ url_for('informer.overview') }}">Open Informer</a>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <h2 class="h5">Compiler</h2>
-          <p class="text-muted">{{ counts.documents_pending_review }} documents are pending review.</p>
-          <a class="btn btn-primary" href="{{ url_for('compiler.queue') }}">Open Compiler Queue</a>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-md-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <h2 class="h5">Prep</h2>
-          <p class="text-muted">{{ counts.returns_ready_for_prep }} returns are ready for prep.</p>
-          <a class="btn btn-primary" href="{{ url_for('prep.queue') }}">Open Prep Queue</a>
-        </div>
-      </div>
+          {% else %}
+            <tr>
+              <td class="text-muted text-center py-4" colspan="6">No documents have been uploaded yet.</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
     </div>
   </div>
 </div>

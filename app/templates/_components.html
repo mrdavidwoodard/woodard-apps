@@ -1,0 +1,31 @@
+{% macro page_header(title, subtitle=None, actions=None) %}
+  <div class="page-header">
+    <div>
+      <h1>{{ title }}</h1>
+      {% if subtitle %}
+        <p>{{ subtitle }}</p>
+      {% endif %}
+    </div>
+    {% if actions %}
+      <div class="page-actions">{{ actions|safe }}</div>
+    {% endif %}
+  </div>
+{% endmacro %}
+
+{% macro status_badge(status) %}
+  {% set value = status or "unknown" %}
+  {% set label = value.replace("_", " ").title() %}
+  <span class="badge status-badge status-{{ value }}">{{ label }}</span>
+{% endmacro %}
+
+{% macro summary_card(label, value, href=None, cta=None) %}
+  <div class="card summary-card h-100">
+    <div class="card-body">
+      <div class="summary-label">{{ label }}</div>
+      <div class="summary-value">{{ value }}</div>
+      {% if href %}
+        <a class="stretched-link" href="{{ href }}">{{ cta or label }}</a>
+      {% endif %}
+    </div>
+  </div>
+{% endmacro %}

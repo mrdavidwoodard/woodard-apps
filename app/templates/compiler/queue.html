@@ -1,14 +1,10 @@
 {% extends "base.html" %}
+{% import "_components.html" as ui %}
 
 {% block title %}Compiler Queue | Woodard Apps{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-  <div>
-    <h1 class="h3 mb-1">Compiler Queue</h1>
-    <p class="text-muted mb-0">Documents pending reviewer approval, correction, or escalation.</p>
-  </div>
-</div>
+{{ ui.page_header("Compiler Queue", "Documents pending reviewer approval, correction, or escalation.") }}
 
 <div class="table-responsive">
   <table class="table table-striped align-middle">

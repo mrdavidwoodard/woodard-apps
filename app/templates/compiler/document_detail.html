@@ -1,16 +1,12 @@
 {% extends "base.html" %}
+{% import "_components.html" as ui %}
 
 {% block title %}Compiler Review | Woodard Apps{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-column gap-3">
-  <div class="d-flex justify-content-between align-items-start gap-3">
-    <div>
-      <h1 class="h3 mb-1">{{ document.original_file_name or document.file_name }}</h1>
-      <p class="text-muted mb-0">{{ document.client.display_name }} · {{ document.tax_return.tax_year }} {{ document.tax_return.return_type }}</p>
-    </div>
-    <a class="btn btn-outline-secondary" href="{{ url_for('compiler.queue') }}">Back to Queue</a>
-  </div>
+  {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('compiler.queue') }}">Back to Queue</a>{% endset %}
+  {{ ui.page_header(document.original_file_name or document.file_name, document.client.display_name ~ " · " ~ document.tax_return.tax_year ~ " " ~ document.tax_return.return_type, actions) }}
 
   <div class="row g-3">
     <div class="col-12 col-lg-4">
@@ -36,7 +32,7 @@
             <dt>Return Type</dt>
             <dd>{{ document.tax_return.return_type }}</dd>
             <dt>Status</dt>
-            <dd>{{ document.tax_return.status }}</dd>
+            <dd>{{ ui.status_badge(document.tax_return.status) }}</dd>
           </dl>
         </div>
       </div>
@@ -49,7 +45,7 @@
             <dt>Type</dt>
             <dd>{{ document.document_type }}</dd>
             <dt>Status</dt>
-            <dd>{{ document.status }}</dd>
+            <dd>{{ ui.status_badge(document.status) }}</dd>
             <dt>File</dt>
             <dd>
               {% if document.stored_file_path %}
@@ -88,7 +84,7 @@
     <div class="col-12 col-xl-4">
       <div class="card mb-3">
         <div class="card-body">
-          <h2 class="h5">Actions</h2>
+          <h2 class="h5">Review Actions</h2>
           <form method="post" action="{{ url_for('compiler.approve', document_id=document.id) }}">
             <button class="btn btn-success w-100" type="submit">Approve</button>
           </form>

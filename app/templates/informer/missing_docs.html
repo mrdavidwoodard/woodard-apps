@@ -1,15 +1,11 @@
 {% extends "base.html" %}
+{% import "_components.html" as ui %}
 
 {% block title %}Missing Docs | Woodard Apps{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-  <div>
-    <h1 class="h3 mb-1">Missing Docs</h1>
-    <p class="text-muted mb-0">Returns flagged as waiting on the client or carrying missing-document notes.</p>
-  </div>
-  <a class="btn btn-outline-secondary" href="{{ url_for('informer.overview') }}">Informer Overview</a>
-</div>
+{% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('informer.overview') }}">Informer Overview</a>{% endset %}
+{{ ui.page_header("Missing Docs", "Returns flagged as waiting on the client or carrying missing-document notes.", actions) }}
 
 <div class="table-responsive">
   <table class="table table-striped align-middle">
@@ -29,7 +25,7 @@
           <td>{{ tax_return.client.display_name }}</td>
           <td>{{ tax_return.tax_year }}</td>
           <td>{{ tax_return.return_type }}</td>
-          <td>{{ tax_return.status }}</td>
+          <td>{{ ui.status_badge(tax_return.status) }}</td>
           <td>{{ tax_return.missing_docs_notes or ("Waiting on client" if tax_return.is_waiting_on_client else "") }}</td>
           <td class="text-end">
             <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.returns_detail', tax_return_id=tax_return.id) }}">Open Return</a>

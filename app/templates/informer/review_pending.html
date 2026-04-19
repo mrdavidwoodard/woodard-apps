@@ -1,15 +1,11 @@
 {% extends "base.html" %}
+{% import "_components.html" as ui %}
 
 {% block title %}Review Pending | Woodard Apps{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-  <div>
-    <h1 class="h3 mb-1">Review Pending</h1>
-    <p class="text-muted mb-0">Documents with extraction output or intake data ready for staff review.</p>
-  </div>
-  <a class="btn btn-outline-secondary" href="{{ url_for('informer.overview') }}">Informer Overview</a>
-</div>
+{% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('informer.overview') }}">Informer Overview</a>{% endset %}
+{{ ui.page_header("Review Pending", "Documents with extraction output or intake data ready for staff review.", actions) }}
 
 <div class="table-responsive">
   <table class="table table-striped align-middle">
@@ -36,7 +32,7 @@
           <td>{{ document.tax_return.return_type }}</td>
           <td>{{ document.document_type }}</td>
           <td>{{ document.original_file_name or document.file_name }}</td>
-          <td>{{ document.status }}</td>
+          <td>{{ ui.status_badge(document.status) }}</td>
           <td>
             {% if latest_result and latest_result.confidence_score is not none %}
               {{ "%.0f"|format(latest_result.confidence_score * 100) }}%

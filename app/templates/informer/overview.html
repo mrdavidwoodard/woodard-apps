@@ -1,13 +1,11 @@
 {% extends "base.html" %}
+{% import "_components.html" as ui %}
 
 {% block title %}Informer Overview | Woodard Apps{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-column gap-3">
-  <div>
-    <h1 class="h3 mb-1">Informer Overview</h1>
-    <p class="text-muted mb-0">Operational snapshot across clients, returns, documents, and extraction activity.</p>
-  </div>
+  {{ ui.page_header("Informer Overview", "Operational snapshot across clients, returns, documents, and extraction activity.") }}
 
   <div class="row g-3">
     {% set cards = [
@@ -23,8 +21,8 @@
       <div class="col-12 col-md-6 col-lg-3">
         <div class="card h-100">
           <div class="card-body">
-            <div class="text-muted small">{{ label }}</div>
-            <div class="display-6">{{ value }}</div>
+            <div class="summary-label">{{ label }}</div>
+            <div class="summary-value">{{ value }}</div>
           </div>
         </div>
       </div>
@@ -40,7 +38,7 @@
             <tbody>
               {% for status, count in tax_return_status_counts %}
                 <tr>
-                  <td>{{ status }}</td>
+                  <td>{{ ui.status_badge(status) }}</td>
                   <td class="text-end">{{ count }}</td>
                 </tr>
               {% else %}
@@ -59,7 +57,7 @@
             <tbody>
               {% for status, count in document_status_counts %}
                 <tr>
-                  <td>{{ status }}</td>
+                  <td>{{ ui.status_badge(status) }}</td>
                   <td class="text-end">{{ count }}</td>
                 </tr>
               {% else %}
@@ -93,7 +91,7 @@
                 <td>{{ document.client.display_name }}</td>
                 <td>{{ document.tax_return.tax_year }}</td>
                 <td>{{ document.original_file_name or document.file_name }}</td>
-                <td>{{ document.status }}</td>
+                <td>{{ ui.status_badge(document.status) }}</td>
                 <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
                 <td class="text-end">
                   <a class="btn btn-sm btn-outline-primary" href="{{ url_for('documents.detail', document_id=document.id) }}">Open</a>

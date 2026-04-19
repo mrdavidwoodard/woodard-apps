@@ -1,16 +1,12 @@
 {% extends "base.html" %}
+{% import "_components.html" as ui %}
 
 {% block title %}Prep Packet | Woodard Apps{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-column gap-3">
-  <div class="d-flex justify-content-between align-items-start gap-3">
-    <div>
-      <h1 class="h3 mb-1">Prep Packet: {{ tax_return.client.display_name }}</h1>
-      <p class="text-muted mb-0">{{ tax_return.tax_year }} {{ tax_return.return_type }} return</p>
-    </div>
-    <a class="btn btn-outline-secondary" href="{{ url_for('prep.queue') }}">Back to Prep Queue</a>
-  </div>
+  {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('prep.queue') }}">Back to Prep Queue</a>{% endset %}
+  {{ ui.page_header("Prep Packet: " ~ tax_return.client.display_name, tax_return.tax_year ~ " " ~ tax_return.return_type ~ " return", actions) }}
 
   <div class="row g-3">
     <div class="col-12 col-lg-6">
@@ -34,7 +30,7 @@
           <h2 class="h5">Return Info</h2>
           <dl class="row mb-0">
             <dt class="col-sm-4">Status</dt>
-            <dd class="col-sm-8">{{ tax_return.status }}</dd>
+            <dd class="col-sm-8">{{ ui.status_badge(tax_return.status) }}</dd>
             <dt class="col-sm-4">Due Date</dt>
             <dd class="col-sm-8">{{ tax_return.due_date.strftime("%Y-%m-%d") if tax_return.due_date else "" }}</dd>
             <dt class="col-sm-4">Assigned</dt>

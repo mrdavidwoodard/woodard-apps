@@ -1,16 +1,12 @@
 {% extends "base.html" %}
+{% import "_components.html" as ui %}
 
 {% block title %}Document Detail | Woodard Apps{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-column gap-3">
-  <div class="d-flex justify-content-between align-items-start gap-3">
-    <div>
-      <h1 class="h3 mb-1">{{ document.original_file_name or document.file_name }}</h1>
-      <p class="text-muted mb-0">{{ document.client.display_name }} · {{ document.tax_return.tax_year }} {{ document.tax_return.return_type }}</p>
-    </div>
-    <a class="btn btn-outline-secondary" href="{{ url_for('returns.returns_detail', tax_return_id=document.tax_return_id) }}">Back to Return</a>
-  </div>
+  {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('returns.returns_detail', tax_return_id=document.tax_return_id) }}">Back to Return</a>{% endset %}
+  {{ ui.page_header(document.original_file_name or document.file_name, document.client.display_name ~ " · " ~ document.tax_return.tax_year ~ " " ~ document.tax_return.return_type, actions) }}
 
   <div class="row g-3">
     <div class="col-12 col-lg-6">
@@ -23,7 +19,7 @@
             <dt class="col-sm-4">Document Type</dt>
             <dd class="col-sm-8">{{ document.document_type }}</dd>
             <dt class="col-sm-4">Status</dt>
-            <dd class="col-sm-8">{{ document.status }}</dd>
+            <dd class="col-sm-8">{{ ui.status_badge(document.status) }}</dd>
             <dt class="col-sm-4">Source</dt>
             <dd class="col-sm-8">{{ document.source }}</dd>
             <dt class="col-sm-4">Uploaded</dt>
@@ -39,13 +35,13 @@
             <dt class="col-sm-4">SharePoint Status</dt>
             <dd class="col-sm-8">
               {% if document.sharepoint_upload_status == "mock_uploaded" %}
-                <span class="badge text-bg-info">Mock Uploaded (Dev Mode)</span>
+                {{ ui.status_badge("mock_uploaded") }}
               {% elif document.sharepoint_upload_status == "uploaded" %}
-                <span class="badge text-bg-success">Uploaded</span>
+                {{ ui.status_badge("uploaded") }}
               {% elif document.sharepoint_upload_status == "failed" %}
-                <span class="badge text-bg-danger">Failed</span>
+                {{ ui.status_badge("failed") }}
               {% else %}
-                <span class="badge text-bg-light">Not Uploaded</span>
+                <span class="badge status-badge">Not Uploaded</span>
               {% endif %}
             </dd>
             <dt class="col-sm-4">SharePoint Folder</dt>
@@ -73,7 +69,7 @@
             <dt class="col-sm-4">Return Type</dt>
             <dd class="col-sm-8">{{ document.tax_return.return_type }}</dd>
             <dt class="col-sm-4">Return Status</dt>
-            <dd class="col-sm-8">{{ document.tax_return.status }}</dd>
+            <dd class="col-sm-8">{{ ui.status_badge(document.tax_return.status) }}</dd>
           </dl>
           <div class="d-flex flex-wrap gap-2 mt-3">
             <form method="post" action="{{ url_for('documents.extract', document_id=document.id) }}">

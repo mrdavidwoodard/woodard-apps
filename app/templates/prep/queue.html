@@ -1,14 +1,10 @@
 {% extends "base.html" %}
+{% import "_components.html" as ui %}
 
 {% block title %}Prep Queue | Woodard Apps{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between align-items-start gap-3 mb-3">
-  <div>
-    <h1 class="h3 mb-1">Prep Queue</h1>
-    <p class="text-muted mb-0">Returns approved by review and ready for Lacerte preparation.</p>
-  </div>
-</div>
+{{ ui.page_header("Prep Queue", "Returns approved by review and ready for Lacerte preparation.") }}
 
 <div class="table-responsive">
   <table class="table table-striped align-middle">

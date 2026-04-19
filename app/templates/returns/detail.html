@@ -1,16 +1,12 @@
 {% extends "base.html" %}
+{% import "_components.html" as ui %}
 
 {% block title %}Return Detail | Woodard Apps{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-column gap-3">
-  <div class="d-flex justify-content-between align-items-start gap-3">
-    <div>
-      <h1 class="h3 mb-1">{{ tax_return.client.display_name }}</h1>
-      <p class="text-muted mb-0">{{ tax_return.tax_year }} {{ tax_return.return_type }} return</p>
-    </div>
-    <a class="btn btn-outline-secondary" href="{{ url_for('returns.returns_index') }}">Back to Returns</a>
-  </div>
+  {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('returns.returns_index') }}">Back to Returns</a>{% endset %}
+  {{ ui.page_header(tax_return.client.display_name, tax_return.tax_year ~ " " ~ tax_return.return_type ~ " return", actions) }}
 
   <div class="row g-3">
     <div class="col-12 col-lg-6">
@@ -38,7 +34,7 @@
             <dt class="col-sm-4">Return Type</dt>
             <dd class="col-sm-8">{{ tax_return.return_type }}</dd>
             <dt class="col-sm-4">Status</dt>
-            <dd class="col-sm-8">{{ tax_return.status }}</dd>
+            <dd class="col-sm-8">{{ ui.status_badge(tax_return.status) }}</dd>
           </dl>
         </div>
       </div>
@@ -66,20 +62,20 @@
               <tr>
                 <td>{{ document.document_type }}</td>
                 <td>{{ document.original_file_name or document.file_name }}</td>
-                <td>{{ document.status }}</td>
+                <td>{{ ui.status_badge(document.status) }}</td>
                 <td>
                   {% if document.sharepoint_file_url %}
                     <a href="{{ document.sharepoint_file_url }}" target="_blank" rel="noopener">
                       {% if document.sharepoint_upload_status == "mock_uploaded" %}
-                        <span class="badge text-bg-info">mock uploaded</span>
+                        {{ ui.status_badge("mock_uploaded") }}
                       {% else %}
-                        <span class="badge text-bg-success">uploaded</span>
+                        {{ ui.status_badge("uploaded") }}
                       {% endif %}
                     </a>
                   {% elif document.sharepoint_upload_status == "failed" %}
-                    <span class="badge text-bg-danger">failed</span>
+                    {{ ui.status_badge("failed") }}
                   {% else %}
-                    <span class="badge text-bg-light">{{ document.sharepoint_upload_status or "not configured" }}</span>
+                    <span class="badge status-badge">{{ document.sharepoint_upload_status or "not configured" }}</span>
                   {% endif %}
                 </td>
                 <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
