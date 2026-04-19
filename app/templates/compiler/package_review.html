@@ -17,10 +17,10 @@
       {% if package.status in ["ready_for_prep", "in_prep", "in_review"] %}
         <a class="btn btn-outline-primary" href="{{ url_for('prep.worksheet', package_id=package.id) }}">Open Prep Worksheet</a>
       {% endif %}
-      <a class="btn btn-outline-secondary" href="{{ url_for('packages.detail', package_id=package.id) }}">Back to Intake Package</a>
+      <a class="btn btn-outline-secondary" href="{{ url_for('packages.detail', package_id=package.id) }}">Back to Client Work</a>
     </div>
   {% endset %}
-  {{ ui.page_header("Package Review", package.client.display_name ~ " · " ~ package.tax_year ~ " · " ~ package.return_type, actions) }}
+  {{ ui.page_header("Package Review", package.client.display_name ~ " · " ~ package.tax_year ~ " · " ~ (package.work_type or package.return_type), actions) }}
 
   {% if issues %}
     <div class="alert alert-warning app-alert">

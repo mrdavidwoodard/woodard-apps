@@ -6,7 +6,7 @@
 {% block content %}
 <div class="d-flex flex-column gap-3">
   {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('packages.detail', package_id=document.tax_return_id) }}">Back to Client Work</a>{% endset %}
-  {{ ui.page_header(document.original_file_name or document.file_name, document.client.display_name ~ " · " ~ document.tax_return.tax_year ~ " " ~ document.tax_return.return_type, actions) }}
+  {{ ui.page_header(document.original_file_name or document.file_name, document.client.display_name ~ " · " ~ document.tax_return.tax_year ~ " " ~ (document.tax_return.work_type or document.tax_return.return_type), actions) }}
 
   <div class="row g-3">
     <div class="col-12 col-lg-6">
@@ -66,8 +66,8 @@
           <dl class="row mb-0">
             <dt class="col-sm-4">Tax Year</dt>
             <dd class="col-sm-8">{{ document.tax_return.tax_year }}</dd>
-            <dt class="col-sm-4">Intake Package</dt>
-            <dd class="col-sm-8">{{ document.tax_return.return_type }}</dd>
+            <dt class="col-sm-4">Work Type</dt>
+            <dd class="col-sm-8">{{ document.tax_return.work_type or document.tax_return.return_type }}</dd>
             <dt class="col-sm-4">Intake Status</dt>
             <dd class="col-sm-8">{{ ui.status_badge(document.tax_return.status) }}</dd>
           </dl>

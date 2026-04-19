@@ -13,7 +13,7 @@
       <tr>
         <th scope="col">Client</th>
         <th scope="col">Tax Year</th>
-        <th scope="col">Intake Package</th>
+        <th scope="col">Work Type</th>
         <th scope="col">Document Type</th>
         <th scope="col">File Name</th>
         <th scope="col">Review Status</th>
@@ -29,7 +29,7 @@
         <tr>
           <td>{{ document.client.display_name }}</td>
           <td>{{ document.tax_return.tax_year }}</td>
-          <td>{{ document.tax_return.return_type }}</td>
+          <td>{{ document.tax_return.work_type or document.tax_return.return_type }}</td>
           <td>{{ document.document_type }}</td>
           <td>{{ document.original_file_name or document.file_name }}</td>
           <td>{{ ui.status_badge(document.status) }}</td>

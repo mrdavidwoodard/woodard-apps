@@ -50,13 +50,13 @@ def upload():
         client_name = request.form.get("client_display_name", "").strip()
         client_type = request.form.get("client_type", "").strip()
         tax_year = request.form.get("tax_year", "").strip()
-        return_type = request.form.get("return_type", "").strip()
+        work_type = request.form.get("work_type", request.form.get("return_type", "")).strip()
         document_type = request.form.get("document_type", "").strip()
         source = request.form.get("source", "").strip()
         uploaded_file = request.files.get("document")
         form_data = request.form.to_dict()
 
-        required_values = [client_name, client_type, tax_year, return_type, document_type, source]
+        required_values = [client_name, client_type, tax_year, work_type, document_type, source]
         if not all(required_values):
             flash("Client, intake package, and document details are required.", "danger")
             return render_template("ingester/upload.html", form_data=form_data)
@@ -92,17 +92,20 @@ def upload():
         tax_return = TaxReturn.query.filter_by(
             client=client,
             tax_year=tax_year_int,
-            return_type=return_type,
+            return_type=work_type,
         ).first()
         if not tax_return:
             tax_return = TaxReturn(
                 client=client,
                 tax_year=tax_year_int,
-                return_type=return_type,
+                return_type=work_type,
+                work_type=work_type,
                 status="new",
                 assigned_user=current_user,
             )
             db.session.add(tax_return)
+        elif not tax_return.work_type:
+            tax_return.work_type = work_type
         try:
             destination, stored_file_path = get_upload_destination(client.display_name, tax_year_int, uploaded_file.filename)
             uploaded_file.save(destination)

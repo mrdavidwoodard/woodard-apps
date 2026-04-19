@@ -20,6 +20,12 @@ DEFAULT_ORGANIZER_SECTIONS = [
     ("Other Taxes / Credits", None, 14),
 ]
 
+
+def get_default_sections_for_work_type(work_type):
+    # Future: return different organizer sections for business, fiduciary, or non-tax work.
+    return DEFAULT_ORGANIZER_SECTIONS
+
+
 DEFAULT_PACKAGE_REQUIREMENTS = [
     ("Client Information", "organizer", "Organizer"),
     ("Wages", "w2", "W-2"),
@@ -70,8 +76,8 @@ def requirement_display_name(document_type):
     return labels.get(normalized, normalized.replace("_", " ").title() or "Source Document")
 
 
-def seed_default_organizer_sections():
-    for name, description, display_order in DEFAULT_ORGANIZER_SECTIONS:
+def seed_default_organizer_sections(work_type=None):
+    for name, description, display_order in get_default_sections_for_work_type(work_type):
         section = OrganizerSection.query.filter_by(name=name).first()
         if not section:
             db.session.add(
@@ -89,7 +95,7 @@ def seed_default_organizer_sections():
 
 def create_default_sections(package):
     """Ensure the standard organizer sections exist for an intake package."""
-    seed_default_organizer_sections()
+    seed_default_organizer_sections(package.work_type)
     return OrganizerSection.query.order_by(OrganizerSection.display_order.asc(), OrganizerSection.name.asc()).all()
 
 

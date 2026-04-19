@@ -75,8 +75,8 @@
             <dd class="col-sm-8">{{ tax_return.client.display_name }}</dd>
             <dt class="col-sm-4">Tax Year</dt>
             <dd class="col-sm-8">{{ tax_return.tax_year }}</dd>
-            <dt class="col-sm-4">Intake Package</dt>
-            <dd class="col-sm-8">{{ tax_return.return_type }}</dd>
+            <dt class="col-sm-4">Work Type</dt>
+            <dd class="col-sm-8">{{ tax_return.work_type or tax_return.return_type }}</dd>
             <dt class="col-sm-4">Intake Status</dt>
             <dd class="col-sm-8">{{ ui.status_badge(tax_return.status) }}</dd>
             <dt class="col-sm-4">Prep Status</dt>
@@ -100,6 +100,24 @@
       </div>
     </div>
   </div>
+
+  {% if tax_return.source_system == "taxdome" or tax_return.client.taxdome_client_id or tax_return.taxdome_organizer_request_id or tax_return.taxdome_job_id %}
+    <div class="card">
+      <div class="card-body">
+        {{ ui.section_title("Integration Linkage", "Simulated TaxDome event details for this intake package.") }}
+        <dl class="row mb-0 mt-3">
+          <dt class="col-sm-3">Source System</dt>
+          <dd class="col-sm-9">{{ "TaxDome" if tax_return.source_system == "taxdome" else (tax_return.source_system|title if tax_return.source_system else "Internal") }}</dd>
+          <dt class="col-sm-3">TaxDome Client ID</dt>
+          <dd class="col-sm-9">{{ tax_return.client.taxdome_client_id or "Not linked" }}</dd>
+          <dt class="col-sm-3">Organizer Request ID</dt>
+          <dd class="col-sm-9">{{ tax_return.taxdome_organizer_request_id or "Not linked" }}</dd>
+          <dt class="col-sm-3">Job ID</dt>
+          <dd class="col-sm-9">{{ tax_return.taxdome_job_id or "Not linked" }}</dd>
+        </dl>
+      </div>
+    </div>
+  {% endif %}
 
   <div class="card">
     <div class="card-body">

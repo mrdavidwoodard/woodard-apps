@@ -75,6 +75,7 @@ class Client(db.Model):
     primary_contact_email = db.Column(db.String(255), nullable=True)
     phone = db.Column(db.String(50), nullable=True)
     sharepoint_folder_url = db.Column(db.String(1024), nullable=True)
+    taxdome_client_id = db.Column(db.String(120), nullable=True, index=True)
     is_active = db.Column(db.Boolean, nullable=False, default=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now)
@@ -103,11 +104,15 @@ class TaxReturn(db.Model):
     client_id = db.Column(db.Integer, db.ForeignKey("clients.id"), nullable=False, index=True)
     tax_year = db.Column(db.Integer, nullable=False)
     return_type = db.Column(db.String(80), nullable=False)
+    work_type = db.Column(db.String(50), nullable=True)
     status = db.Column(db.String(50), nullable=False, default="new")
     is_waiting_on_client = db.Column(db.Boolean, nullable=False, default=False)
     missing_docs_notes = db.Column(db.Text, nullable=True)
     prep_notes = db.Column(db.Text, nullable=True)
     prep_worksheet_state = db.Column(db.JSON, nullable=True)
+    source_system = db.Column(db.String(50), nullable=False, default="internal")
+    taxdome_job_id = db.Column(db.String(120), nullable=True, index=True)
+    taxdome_organizer_request_id = db.Column(db.String(120), nullable=True, index=True)
     assigned_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     reviewer_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     due_date = db.Column(db.Date, nullable=True)
@@ -193,6 +198,15 @@ class TaxReturn(db.Model):
     def is_ready_for_extraction(self, value):
         # Keep the legacy database column available as a cached/backward-compatible value.
         self._is_ready_for_extraction = bool(value)
+
+    @property
+    def package_type(self):
+        return self.work_type or self.return_type
+
+    @package_type.setter
+    def package_type(self, value):
+        self.work_type = value
+        self.return_type = value
 
 
 class Document(db.Model):

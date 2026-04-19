@@ -6,7 +6,7 @@
 {% block content %}
 <div class="d-flex flex-column gap-3">
   {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('compiler.queue') }}">Back to Queue</a>{% endset %}
-  {{ ui.page_header("Review Document", document.client.display_name ~ " · " ~ document.tax_return.tax_year ~ " " ~ document.tax_return.return_type, actions) }}
+  {{ ui.page_header("Review Document", document.client.display_name ~ " · " ~ document.tax_return.tax_year ~ " " ~ (document.tax_return.work_type or document.tax_return.return_type), actions) }}
 
   <div class="row g-4 align-items-start">
     <div class="col-12 col-xl-5">

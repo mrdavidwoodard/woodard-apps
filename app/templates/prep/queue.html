@@ -12,7 +12,7 @@
       <tr>
         <th scope="col">Client</th>
         <th scope="col">Tax Year</th>
-        <th scope="col">Intake Package</th>
+        <th scope="col">Work Type</th>
         <th scope="col">Assigned User</th>
         <th scope="col">Due Date</th>
         <th scope="col">Approved Docs</th>
@@ -25,7 +25,7 @@
         <tr>
           <td>{{ tax_return.client.display_name }}</td>
           <td>{{ tax_return.tax_year }}</td>
-          <td>{{ tax_return.return_type }}</td>
+          <td>{{ tax_return.work_type or tax_return.return_type }}</td>
           <td>{{ tax_return.assigned_user.full_name if tax_return.assigned_user else "Unassigned" }}</td>
           <td>{{ tax_return.due_date.strftime("%Y-%m-%d") if tax_return.due_date else "" }}</td>
           <td>{{ row.approved_document_count }}</td>

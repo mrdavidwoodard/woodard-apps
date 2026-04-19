@@ -30,9 +30,10 @@ def create_tax_return():
     if request.method == "POST":
         client_name = request.form.get("client_name", "").strip()
         tax_year = request.form.get("tax_year", "").strip()
+        work_type = request.form.get("work_type", "").strip()
 
-        if not client_name or not tax_year:
-            flash("Client name and tax year are required.", "danger")
+        if not client_name or not tax_year or not work_type:
+            flash("Client name, tax year, and work type are required.", "danger")
             return render_template("create_tax_return.html", form_data=request.form)
 
         try:
@@ -50,7 +51,8 @@ def create_tax_return():
         tax_return = TaxReturn(
             client=client,
             tax_year=tax_year_int,
-            return_type="1040",
+            return_type=work_type,
+            work_type=work_type,
             status="waiting_on_client",
             assigned_user=current_user,
         )

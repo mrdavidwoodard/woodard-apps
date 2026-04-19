@@ -15,7 +15,7 @@
       <tr>
         <th scope="col">Client</th>
         <th scope="col">Tax Year</th>
-        <th scope="col">Intake Package</th>
+        <th scope="col">Work Type</th>
         <th scope="col">Intake Status</th>
         <th scope="col">Waiting on Client</th>
         <th scope="col">Ready for Extraction</th>
@@ -30,7 +30,7 @@
             <a href="{{ url_for('packages.detail', package_id=item.id) }}">{{ item.client.display_name }}</a>
           </td>
           <td>{{ item.tax_year }}</td>
-          <td>{{ item.return_type }}</td>
+          <td>{{ item.work_type or item.return_type }}</td>
           <td>{{ ui.status_badge(item.status) }}</td>
           <td>{{ "Yes" if item.is_waiting_on_client else "No" }}</td>
           <td>{{ "Yes" if item.is_ready_for_extraction else "No" }}</td>

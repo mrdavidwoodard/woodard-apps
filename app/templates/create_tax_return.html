@@ -35,6 +35,17 @@
               required
             >
           </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="work_type">Work Type</label>
+            {% set selected_work_type = form_data.work_type if form_data else '' %}
+            <select class="form-select" id="work_type" name="work_type" required>
+              <option value="" {% if not selected_work_type %}selected{% endif %}>Select work type</option>
+              <option value="1040" {% if selected_work_type == '1040' %}selected{% endif %}>1040 - Individual</option>
+              <option value="1065" {% if selected_work_type == '1065' %}selected{% endif %}>1065 - Partnership</option>
+              <option value="1120S" {% if selected_work_type == '1120S' %}selected{% endif %}>1120S - S Corp</option>
+              <option value="1041" {% if selected_work_type == '1041' %}selected{% endif %}>1041 - Trust</option>
+            </select>
+          </div>
         </div>
         <div class="mt-4 d-flex gap-2">
           <button class="btn btn-primary" type="submit">Create Client Work</button>

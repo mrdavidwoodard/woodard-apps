@@ -6,7 +6,7 @@
 {% block content %}
 <div class="d-flex flex-column gap-3">
   {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('prep.queue') }}">Back to Prep Queue</a>{% endset %}
-  {{ ui.page_header("Prep Packet: " ~ tax_return.client.display_name, tax_return.tax_year ~ " " ~ tax_return.return_type ~ " client work · supports Lacerte preparation", actions) }}
+  {{ ui.page_header("Prep Packet: " ~ tax_return.client.display_name, tax_return.tax_year ~ " " ~ (tax_return.work_type or tax_return.return_type) ~ " client work · supports Lacerte preparation", actions) }}
 
   <div class="row g-3">
     <div class="col-12 col-lg-6">
