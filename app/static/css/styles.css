@@ -7,7 +7,11 @@
   --wa-muted: #667085;
   --wa-blue: #2f6f9f;
   --wa-blue-soft: #e8f1f8;
+  --wa-green: #067647;
+  --wa-amber: #b54708;
+  --wa-red: #b42318;
   --wa-shadow: 0 8px 24px rgba(31, 41, 55, 0.06);
+  --wa-shadow-hover: 0 12px 32px rgba(31, 41, 55, 0.10);
 }
 
 body {
@@ -99,6 +103,7 @@ body {
 }
 
 .card {
+  background: var(--wa-surface);
   border: 1px solid var(--wa-border-soft);
   border-radius: 0.65rem;
   box-shadow: var(--wa-shadow);
@@ -110,6 +115,13 @@ body {
 
 .summary-card {
   position: relative;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.summary-card:hover,
+.module-card:hover {
+  box-shadow: var(--wa-shadow-hover);
+  transform: translateY(-1px);
 }
 
 .summary-label {
@@ -126,6 +138,43 @@ body {
   font-weight: 700;
   line-height: 1.1;
   margin-top: 0.35rem;
+}
+
+.summary-card .stretched-link {
+  color: var(--wa-blue);
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 700;
+  margin-top: 0.55rem;
+  text-decoration: none;
+}
+
+.module-card {
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.module-card-title {
+  color: var(--wa-text);
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin-bottom: 0.4rem;
+}
+
+.module-card p {
+  color: var(--wa-muted);
+  min-height: 3rem;
+}
+
+.section-title h2 {
+  font-size: 1.05rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.section-title p {
+  color: var(--wa-muted);
+  font-size: 0.9rem;
+  margin: 0.15rem 0 0;
 }
 
 .table {
@@ -155,6 +204,20 @@ body {
   overflow: hidden;
 }
 
+.table a:not(.btn) {
+  color: var(--wa-blue);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.table a:not(.btn):hover {
+  text-decoration: underline;
+}
+
+.table .btn {
+  white-space: nowrap;
+}
+
 .form-label {
   color: #344054;
   font-weight: 600;
@@ -164,6 +227,12 @@ body {
 .form-select {
   border-color: var(--wa-border);
   border-radius: 0.5rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+  border-color: var(--wa-blue);
+  box-shadow: 0 0 0 0.2rem rgba(47, 111, 159, 0.14);
 }
 
 .btn {
@@ -180,6 +249,17 @@ body {
 .btn-primary:focus {
   background: #285f87;
   border-color: #285f87;
+}
+
+.btn-outline-primary {
+  border-color: #9cc5df;
+  color: var(--wa-blue);
+}
+
+.btn-outline-primary:hover,
+.btn-outline-primary:focus {
+  background: var(--wa-blue);
+  border-color: var(--wa-blue);
 }
 
 .flash-stack {
@@ -234,7 +314,17 @@ body {
 }
 
 pre {
+  background: #f8fafc;
+  border: 1px solid var(--wa-border-soft);
+  border-radius: 0.65rem;
+  color: #344054;
+  font-size: 0.86rem;
+  padding: 1rem;
   white-space: pre-wrap;
+}
+
+.font-monospace {
+  font-size: 0.88rem;
 }
 
 dl dt {

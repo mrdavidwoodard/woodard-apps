@@ -18,48 +18,16 @@
 </div>
 
 <div class="row g-3 mb-4">
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card h-100">
-      <div class="card-body">
-        <h2 class="h5">Ingester</h2>
-        <p class="text-muted">Upload source documents and create intake records.</p>
-        <a class="btn btn-primary" href="{{ url_for('ingester.upload') }}">Open Ingester</a>
-      </div>
-    </div>
-  </div>
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card h-100">
-      <div class="card-body">
-        <h2 class="h5">Informer</h2>
-        <p class="text-muted">Monitor queues, exceptions, and operational status.</p>
-        <a class="btn btn-primary" href="{{ url_for('informer.overview') }}">Open Informer</a>
-      </div>
-    </div>
-  </div>
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card h-100">
-      <div class="card-body">
-        <h2 class="h5">Compiler</h2>
-        <p class="text-muted">Review extracted data and approve documents.</p>
-        <a class="btn btn-primary" href="{{ url_for('compiler.queue') }}">Open Compiler</a>
-      </div>
-    </div>
-  </div>
-  <div class="col-12 col-md-6 col-xl-3">
-    <div class="card h-100">
-      <div class="card-body">
-        <h2 class="h5">Prep</h2>
-        <p class="text-muted">Stage approved returns for preparation.</p>
-        <a class="btn btn-primary" href="{{ url_for('prep.queue') }}">Open Prep</a>
-      </div>
-    </div>
-  </div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.module_card("Ingester", "Upload source documents and create intake records.", url_for('ingester.upload'), "Open Ingester") }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.module_card("Informer", "Monitor queues, exceptions, and operational status.", url_for('informer.overview'), "Open Informer") }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.module_card("Compiler", "Review extracted data and approve documents.", url_for('compiler.queue'), "Open Compiler") }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.module_card("Prep", "Stage approved returns for preparation.", url_for('prep.queue'), "Open Prep") }}</div>
 </div>
 
 <div class="card">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center mb-3">
-      <h2 class="h5 mb-0">Recent Uploaded Documents</h2>
+      {{ ui.section_title("Recent Uploaded Documents", "Latest intake activity across clients.") }}
       <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.returns_index') }}">View Returns</a>
     </div>
     <div class="table-responsive">

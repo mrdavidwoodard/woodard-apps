@@ -14,7 +14,15 @@
 
 {% macro status_badge(status) %}
   {% set value = status or "unknown" %}
-  {% set label = value.replace("_", " ").title() %}
+  {% if value == "mock_uploaded" %}
+    {% set label = "Mock Uploaded" %}
+  {% elif value == "review_pending" %}
+    {% set label = "Review Pending" %}
+  {% elif value == "ready_for_prep" %}
+    {% set label = "Ready for Prep" %}
+  {% else %}
+    {% set label = value.replace("_", " ").title() %}
+  {% endif %}
   <span class="badge status-badge status-{{ value }}">{{ label }}</span>
 {% endmacro %}
 
@@ -27,5 +35,24 @@
         <a class="stretched-link" href="{{ href }}">{{ cta or label }}</a>
       {% endif %}
     </div>
+  </div>
+{% endmacro %}
+
+{% macro module_card(title, description, href, cta) %}
+  <div class="card module-card h-100">
+    <div class="card-body">
+      <div class="module-card-title">{{ title }}</div>
+      <p>{{ description }}</p>
+      <a class="btn btn-primary" href="{{ href }}">{{ cta }}</a>
+    </div>
+  </div>
+{% endmacro %}
+
+{% macro section_title(title, subtitle=None) %}
+  <div class="section-title">
+    <h2>{{ title }}</h2>
+    {% if subtitle %}
+      <p>{{ subtitle }}</p>
+    {% endif %}
   </div>
 {% endmacro %}
