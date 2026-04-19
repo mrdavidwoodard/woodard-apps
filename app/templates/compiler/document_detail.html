@@ -6,142 +6,208 @@
 {% block content %}
 <div class="d-flex flex-column gap-3">
   {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('compiler.queue') }}">Back to Queue</a>{% endset %}
-  {{ ui.page_header(document.original_file_name or document.file_name, document.client.display_name ~ " · " ~ document.tax_return.tax_year ~ " " ~ document.tax_return.return_type, actions) }}
+  {{ ui.page_header("Review Document", document.client.display_name ~ " · " ~ document.tax_return.tax_year ~ " " ~ document.tax_return.return_type, actions) }}
 
-  <div class="row g-3">
-    <div class="col-12 col-lg-4">
-      <div class="card h-100">
+  <div class="row g-4 align-items-start">
+    <div class="col-12 col-xl-5">
+      <div class="card compiler-viewer-card">
         <div class="card-body">
-          <h2 class="h5">Client</h2>
-          <dl class="mb-0">
-            <dt>Name</dt>
-            <dd>{{ document.client.display_name }}</dd>
-            <dt>Type</dt>
-            <dd>{{ document.client.client_type }}</dd>
-          </dl>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-lg-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <h2 class="h5">Tax Return</h2>
-          <dl class="mb-0">
-            <dt>Tax Year</dt>
-            <dd>{{ document.tax_return.tax_year }}</dd>
-            <dt>Return Type</dt>
-            <dd>{{ document.tax_return.return_type }}</dd>
-            <dt>Status</dt>
-            <dd>{{ ui.status_badge(document.tax_return.status) }}</dd>
-          </dl>
-        </div>
-      </div>
-    </div>
-    <div class="col-12 col-lg-4">
-      <div class="card h-100">
-        <div class="card-body">
-          <h2 class="h5">Document</h2>
-          <dl class="mb-0">
-            <dt>Type</dt>
-            <dd>{{ document.document_type }}</dd>
-            <dt>Status</dt>
-            <dd>{{ ui.status_badge(document.status) }}</dd>
-            <dt>File</dt>
-            <dd>
+          {{ ui.section_title("Source Document", "Uploaded file preview area.") }}
+          <div class="document-viewer-shell mt-3">
+            <div class="document-viewer-placeholder">
+              <div class="document-viewer-file">{{ document.original_file_name or document.file_name }}</div>
+              <div class="text-muted">Document viewer placeholder</div>
               {% if document.stored_file_path %}
-                <a href="{{ url_for('documents.file', document_id=document.id) }}" target="_blank" rel="noopener">{{ document.file_name }}</a>
-              {% else %}
-                <span class="text-muted">No local file available</span>
+                <a class="btn btn-outline-primary btn-sm mt-3" href="{{ url_for('documents.file', document_id=document.id) }}" target="_blank" rel="noopener">Open File</a>
               {% endif %}
-            </dd>
-          </dl>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="row g-3">
-    <div class="col-12 col-xl-8">
-      <div class="card h-100">
-        <div class="card-body">
-          <h2 class="h5">Extracted Data</h2>
-          {% if latest_result %}
-            <div class="text-muted small mb-2">
-              Model: {{ latest_result.model_name or "unknown" }} · Confidence:
-              {{ "%.0f"|format((latest_result.confidence_score or 0) * 100) }}%
             </div>
-            <form method="post" action="{{ url_for('compiler.correct', document_id=document.id) }}">
-              <textarea class="form-control font-monospace" name="extracted_json" rows="18" required>{{ extracted_json_text }}</textarea>
-              <button class="btn btn-success mt-3" type="submit">Correct and Approve</button>
-            </form>
-          {% else %}
-            <p class="text-muted mb-0">No extraction result exists yet. Send this document to Extractor first.</p>
-          {% endif %}
+          </div>
         </div>
       </div>
     </div>
 
-    <div class="col-12 col-xl-4">
-      <div class="card mb-3">
-        <div class="card-body">
-          <h2 class="h5">Review Actions</h2>
-          <form method="post" action="{{ url_for('compiler.approve', document_id=document.id) }}">
-            <button class="btn btn-success w-100" type="submit">Approve</button>
-          </form>
-          <hr>
-          <form method="post" action="{{ url_for('compiler.escalate', document_id=document.id) }}">
-            <label class="form-label" for="notes">Escalation notes</label>
-            <textarea class="form-control" id="notes" name="notes" rows="4" required></textarea>
-            <button class="btn btn-warning w-100 mt-3" type="submit">Escalate</button>
-          </form>
+    <div class="col-12 col-xl-7">
+      <div class="d-flex flex-column gap-3">
+        <div class="card">
+          <div class="card-body">
+            {{ ui.section_title("Document Info") }}
+            <dl class="row mb-0 mt-3">
+              <dt class="col-sm-4">Document Type</dt>
+              <dd class="col-sm-8">{{ document.document_type }}</dd>
+              <dt class="col-sm-4">File Name</dt>
+              <dd class="col-sm-8">{{ document.original_file_name or document.file_name }}</dd>
+              <dt class="col-sm-4">Uploaded</dt>
+              <dd class="col-sm-8">{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</dd>
+              <dt class="col-sm-4">Status</dt>
+              <dd class="col-sm-8">{{ ui.status_badge(document.status) }}</dd>
+            </dl>
+          </div>
         </div>
-      </div>
 
-      <div class="card">
-        <div class="card-body">
-          <h2 class="h5">Validation Messages</h2>
-          {% if latest_result and latest_result.validation_messages_json %}
-            <ul class="mb-0">
-              {% for message in latest_result.validation_messages_json %}
-                <li>{{ message }}</li>
-              {% endfor %}
-            </ul>
-          {% else %}
-            <p class="text-muted mb-0">No validation messages.</p>
-          {% endif %}
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="card">
-    <div class="card-body">
-      <h2 class="h5">Review History</h2>
-      <div class="table-responsive">
-        <table class="table table-striped align-middle mb-0">
-          <thead>
-            <tr>
-              <th scope="col">Action</th>
-              <th scope="col">Reviewer</th>
-              <th scope="col">Reviewed</th>
-              <th scope="col">Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for action in review_actions %}
-              <tr>
-                <td>{{ action.action_type }}</td>
-                <td>{{ action.reviewed_by_user.full_name }}</td>
-                <td>{{ action.reviewed_at.strftime("%Y-%m-%d %I:%M %p") if action.reviewed_at else "" }}</td>
-                <td>{{ action.notes or "" }}</td>
-              </tr>
+        <div class="card">
+          <div class="card-body">
+            {{ ui.section_title("Extraction Summary") }}
+            {% if latest_result %}
+              <dl class="row mb-0 mt-3">
+                <dt class="col-sm-4">Detected Type</dt>
+                <dd class="col-sm-8">{{ latest_result.document_type_detected or document.document_type }}</dd>
+                <dt class="col-sm-4">Confidence</dt>
+                <dd class="col-sm-8">
+                  {% if latest_result.confidence_score is not none %}
+                    {{ "%.0f"|format(latest_result.confidence_score * 100) }}%
+                  {% else %}
+                    <span class="text-muted">Not available</span>
+                  {% endif %}
+                </dd>
+              </dl>
+              {% if field_confidence_summary.total %}
+                <div class="confidence-summary mt-3">
+                  <div class="confidence-summary-item">
+                    <span class="confidence-dot confidence-dot-high"></span>
+                    <span>{{ field_confidence_summary.high }} High</span>
+                  </div>
+                  <div class="confidence-summary-item">
+                    <span class="confidence-dot confidence-dot-medium"></span>
+                    <span>{{ field_confidence_summary.medium }} Medium</span>
+                  </div>
+                  <div class="confidence-summary-item">
+                    <span class="confidence-dot confidence-dot-low"></span>
+                    <span>{{ field_confidence_summary.low }} Low</span>
+                  </div>
+                </div>
+              {% endif %}
+              {% if latest_result.confidence_score is not none and latest_result.confidence_score < 0.9 %}
+                <div class="alert alert-warning low-confidence-alert mt-3 mb-0">
+                  <strong>Low confidence extraction</strong>
+                  <span>Review carefully before approving this document.</span>
+                </div>
+              {% endif %}
             {% else %}
-              <tr>
-                <td class="text-muted text-center py-4" colspan="4">No review actions have been recorded.</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+              <p class="text-muted mb-0 mt-3">No extraction data available yet</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="card extracted-data-card">
+          <div class="card-body">
+            {{ ui.section_title("Extracted Data", "Validate each field before approving the document.") }}
+            {% if latest_result %}
+              {% if has_saved_corrections %}
+                <div class="reviewer-updated-banner mt-3">
+                  Reviewer-updated values have been saved for this document.
+                </div>
+              {% endif %}
+              {% if field_defs %}
+                <form id="corrections-form" class="mt-3" method="post" action="{{ url_for('compiler.save_corrections', document_id=document.id) }}">
+                  <div class="structured-field-grid">
+                    {% for field_name, label in field_defs %}
+                      {% set field_confidence = extraction_confidence(latest_result, field_name) %}
+                      {% set field_level = confidence_level(field_confidence) %}
+                      <div class="structured-field{% if field_name == 'notes' %} structured-field-wide{% endif %}{% if field_level == 'low' %} structured-field-low{% endif %}">
+                        <div class="field-label-row">
+                          <label class="form-label mb-0" for="{{ field_name }}">{{ label }}</label>
+                          <div class="field-badge-stack">
+                            {% if field_confidence is not none %}
+                              <span class="confidence-badge {{ confidence_badge_class(field_confidence) }}">{{ confidence_badge_label(field_confidence) }}</span>
+                            {% endif %}
+                            {% if field_reviewer_updated(latest_result, field_name) %}
+                              <span class="reviewer-updated-pill">Reviewer Updated</span>
+                            {% endif %}
+                          </div>
+                        </div>
+                        {% if field_name == "notes" %}
+                          <textarea class="form-control mt-2" id="{{ field_name }}" name="{{ field_name }}" rows="4">{{ extraction_value(latest_result, field_name) }}</textarea>
+                        {% else %}
+                          <input class="form-control mt-2" id="{{ field_name }}" name="{{ field_name }}" value="{{ extraction_value(latest_result, field_name) }}">
+                        {% endif %}
+                        {% if field_level == "low" %}
+                          <div class="field-help-warning">Review carefully</div>
+                        {% endif %}
+                      </div>
+                    {% endfor %}
+                  </div>
+                </form>
+              {% else %}
+                <div class="alert alert-light border mt-3 mb-3">
+                  This document type does not have a structured review layout yet. The extracted data is shown read-only below.
+                </div>
+                <pre class="json-readonly mb-0"><code>{{ extracted_json_text }}</code></pre>
+              {% endif %}
+            {% else %}
+              <p class="text-muted mb-0 mt-3">No extraction data available yet</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="card compiler-actions-card">
+          <div class="card-body">
+            {{ ui.section_title("Actions", "Approve clean documents or mark exceptions for follow-up.") }}
+            <div class="d-grid gap-3 mt-3">
+              <form method="post" action="{{ url_for('compiler.approve', document_id=document.id) }}">
+                <button class="btn btn-success btn-lg w-100" type="submit">Approve Document</button>
+              </form>
+
+              {% if latest_result and field_defs %}
+                <button class="btn btn-outline-primary w-100" type="submit" form="corrections-form">Save Corrections</button>
+              {% endif %}
+
+              <form class="mark-review-form" method="post" action="{{ url_for('compiler.escalate', document_id=document.id) }}">
+                <label class="form-label" for="notes">Notes (optional)</label>
+                <textarea class="form-control" id="notes" name="notes" rows="3" placeholder="Add context for the next reviewer."></textarea>
+                <button class="btn btn-outline-warning w-100 mt-2" type="submit">Mark for Review</button>
+              </form>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            {{ ui.section_title("Validation Messages") }}
+            {% if latest_result and latest_result.validation_messages_json %}
+              <div class="alert alert-info validation-message-box mt-3 mb-0">
+                <ul class="mb-0">
+                  {% for message in latest_result.validation_messages_json %}
+                    <li>{{ message }}</li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% else %}
+              <p class="text-muted mb-0 mt-3">No validation messages.</p>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-body">
+            {{ ui.section_title("Review History") }}
+            <div class="table-responsive mt-3">
+              <table class="table table-striped align-middle">
+                <thead>
+                  <tr>
+                    <th scope="col">Action</th>
+                    <th scope="col">Reviewer</th>
+                    <th scope="col">Reviewed</th>
+                    <th scope="col">Notes</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for action in review_actions %}
+                    <tr>
+                      <td>{{ action.action_type }}</td>
+                      <td>{{ action.reviewed_by_user.full_name }}</td>
+                      <td>{{ action.reviewed_at.strftime("%Y-%m-%d %I:%M %p") if action.reviewed_at else "" }}</td>
+                      <td>{{ action.notes or "" }}</td>
+                    </tr>
+                  {% else %}
+                    <tr>
+                      <td class="text-muted text-center py-4" colspan="4">No review actions have been recorded.</td>
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </div>

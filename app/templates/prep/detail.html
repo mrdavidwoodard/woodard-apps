@@ -57,7 +57,7 @@
 
   <div class="card">
     <div class="card-body">
-      <h2 class="h5">Approved Documents</h2>
+      {{ ui.section_title("Approved Documents", "Source documents approved by review and ready to support preparation.") }}
       <div class="table-responsive">
         <table class="table table-striped align-middle mb-0">
           <thead>
@@ -102,10 +102,10 @@
 
   <div class="card">
     <div class="card-body">
-      <h2 class="h5">Prep Summary</h2>
-      <div class="d-flex flex-column gap-3">
+      {{ ui.section_title("Prep Summary", "Human-readable extraction data grouped by approved document.") }}
+      <div class="d-flex flex-column gap-3 mt-3">
         {% for item in prep_summary %}
-          <div class="border rounded p-3">
+          <div class="prep-summary-item">
             <h3 class="h6">{{ item.document.document_type }} · {{ item.document.original_file_name or item.document.file_name }}</h3>
             {% if item.kind in ["w2", "1099_int"] %}
               <dl class="row mb-0">

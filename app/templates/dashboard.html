@@ -4,7 +4,7 @@
 {% block title %}Dashboard | Woodard Apps{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Woodard Apps Dashboard", "Welcome, " ~ current_user.full_name ~ ". Here is the current operations snapshot.") }}
+{{ ui.page_header("Dashboard", "Welcome, " ~ current_user.full_name ~ ". Here is the current operations snapshot.") }}
 
 <div class="row g-3 mb-4">
   <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Clients", counts.clients) }}</div>

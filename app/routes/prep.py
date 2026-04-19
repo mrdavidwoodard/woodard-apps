@@ -21,6 +21,13 @@ def format_other_json(value):
     return json.dumps(value or {}, indent=2, sort_keys=True)
 
 
+def extracted_value(extracted, field_name):
+    fields = extracted.get("fields") if isinstance(extracted, dict) else None
+    if isinstance(fields, dict) and isinstance(fields.get(field_name), dict):
+        return fields[field_name].get("value")
+    return extracted.get(field_name) if isinstance(extracted, dict) else None
+
+
 def prep_summary_for(documents):
     summary = []
     for document in documents:
@@ -33,18 +40,18 @@ def prep_summary_for(documents):
         detected_type = (latest_result.document_type_detected or document.document_type or "").lower()
         if detected_type == "w2":
             fields = {
-                "Employer": extracted.get("employer_name"),
-                "EIN": extracted.get("ein"),
-                "Wages": extracted.get("wages"),
-                "Federal Withholding": extracted.get("federal_withholding"),
-                "State Wages": extracted.get("state_wages"),
+                "Employer": extracted_value(extracted, "employer_name"),
+                "EIN": extracted_value(extracted, "ein"),
+                "Wages": extracted_value(extracted, "wages"),
+                "Federal Withholding": extracted_value(extracted, "federal_withholding"),
+                "State Wages": extracted_value(extracted, "state_wages"),
             }
             summary.append({"document": document, "result": latest_result, "kind": "w2", "fields": fields, "json_text": ""})
         elif detected_type in {"1099_int", "1099-int"}:
             fields = {
-                "Payer": extracted.get("payer_name"),
-                "Interest Income": extracted.get("interest_income"),
-                "Federal Withholding": extracted.get("federal_withholding"),
+                "Payer": extracted_value(extracted, "payer_name"),
+                "Interest Income": extracted_value(extracted, "interest_income"),
+                "Federal Withholding": extracted_value(extracted, "federal_withholding"),
             }
             summary.append({"document": document, "result": latest_result, "kind": "1099_int", "fields": fields, "json_text": ""})
         else:

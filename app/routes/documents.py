@@ -15,19 +15,23 @@ def build_mock_extraction(document):
 
     if document_type == "w2":
         extracted_json = {
-            "employer_name": "Mock Employer Inc.",
-            "ein": "12-3456789",
-            "wages": 84500.00,
-            "federal_withholding": 12350.00,
-            "state_wages": 84500.00,
+            "fields": {
+                "employer_name": {"value": "Mock Employer Inc.", "confidence": 0.96},
+                "ein": {"value": "12-3456789", "confidence": 0.72},
+                "wages": {"value": 84500.00, "confidence": 0.95},
+                "federal_withholding": {"value": 12350.00, "confidence": 0.88},
+                "state_wages": {"value": 84500.00, "confidence": 0.93},
+            }
         }
         detected_type = "w2"
         confidence = 0.95
     elif document_type in {"1099", "1099_int"}:
         extracted_json = {
-            "payer_name": "Mock Financial Institution",
-            "interest_income": 248.39,
-            "federal_withholding": 0.00,
+            "fields": {
+                "payer_name": {"value": "Mock Financial Institution", "confidence": 0.94},
+                "interest_income": {"value": 248.39, "confidence": 0.87},
+                "federal_withholding": {"value": 0.00, "confidence": 0.91},
+            }
         }
         detected_type = "1099_int"
         confidence = 0.90
