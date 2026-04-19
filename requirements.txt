@@ -4,3 +4,4 @@ Flask-Login
 Flask-Migrate
 psycopg2-binary
 python-dotenv
+requests

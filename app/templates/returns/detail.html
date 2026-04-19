@@ -55,6 +55,7 @@
               <th scope="col">Document Type</th>
               <th scope="col">File Name</th>
               <th scope="col">Status</th>
+              <th scope="col">SharePoint</th>
               <th scope="col">Uploaded</th>
               <th scope="col">Extraction</th>
               <th scope="col"></th>
@@ -66,6 +67,17 @@
                 <td>{{ document.document_type }}</td>
                 <td>{{ document.original_file_name or document.file_name }}</td>
                 <td>{{ document.status }}</td>
+                <td>
+                  {% if document.sharepoint_file_url %}
+                    <a href="{{ document.sharepoint_file_url }}" target="_blank" rel="noopener">
+                      <span class="badge text-bg-success">uploaded</span>
+                    </a>
+                  {% elif document.sharepoint_upload_status == "failed" %}
+                    <span class="badge text-bg-danger">failed</span>
+                  {% else %}
+                    <span class="badge text-bg-light">{{ document.sharepoint_upload_status or "not configured" }}</span>
+                  {% endif %}
+                </td>
                 <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
                 <td>
                   {% if document.extraction_results.count() %}
@@ -85,7 +97,7 @@
               </tr>
             {% else %}
               <tr>
-                <td class="text-muted text-center py-4" colspan="6">No documents have been uploaded for this return.</td>
+                <td class="text-muted text-center py-4" colspan="7">No documents have been uploaded for this return.</td>
               </tr>
             {% endfor %}
           </tbody>

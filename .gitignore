@@ -5,6 +5,8 @@ venv/
 /Lib/
 /Scripts/
 .env
+.env.*
+!.env.example
 instance/
 uploads/
 *.db

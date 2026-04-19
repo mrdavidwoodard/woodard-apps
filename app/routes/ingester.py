@@ -8,6 +8,7 @@ from werkzeug.utils import secure_filename
 
 from app import db
 from app.models import Client, Document, TaxReturn
+from app.services import sharepoint
 
 ingester_bp = Blueprint("ingester", __name__, url_prefix="/ingester")
 logger = logging.getLogger(__name__)
@@ -41,6 +42,12 @@ def get_upload_destination(client_name, tax_year, original_filename):
 
     relative_path = relative_folder / destination.name
     return destination, relative_path.as_posix()
+
+
+def build_sharepoint_folder_path(client_name, tax_year):
+    base_folder = current_app.config.get("SHAREPOINT_BASE_FOLDER") or ""
+    client_slug = slugify(client_name)
+    return str(Path(base_folder) / client_slug / str(tax_year)).replace("\\", "/").strip("/")
 
 
 @ingester_bp.route("/upload", methods=["GET", "POST"])
@@ -118,6 +125,24 @@ def upload():
                 status="uploaded",
                 uploaded_by_user=current_user,
             )
+
+            if sharepoint.is_configured():
+                folder_path = build_sharepoint_folder_path(client.display_name, tax_year_int)
+                try:
+                    upload_result = sharepoint.upload_file_to_sharepoint(destination, folder_path, destination.name)
+                except Exception as exc:
+                    upload_result = {"ok": False, "error": str(exc)}
+
+                if upload_result.get("ok"):
+                    document.sharepoint_file_url = upload_result.get("web_url")
+                    document.sharepoint_item_id = upload_result.get("item_id")
+                    document.sharepoint_drive_id = upload_result.get("drive_id")
+                    document.sharepoint_upload_status = "uploaded"
+                else:
+                    document.sharepoint_upload_status = "failed"
+                    logger.warning("SharePoint upload failed: %s", upload_result.get("error"))
+                    flash("Document saved locally, but SharePoint upload failed.", "warning")
+
             db.session.add(document)
             db.session.commit()
         except Exception:

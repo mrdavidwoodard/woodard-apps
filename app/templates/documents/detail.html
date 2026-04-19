@@ -28,7 +28,17 @@
             <dd class="col-sm-8">{{ document.source }}</dd>
             <dt class="col-sm-4">Uploaded</dt>
             <dd class="col-sm-8">{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</dd>
-            <dt class="col-sm-4">File</dt>
+            <dt class="col-sm-4">SharePoint</dt>
+            <dd class="col-sm-8">
+              {% if document.sharepoint_file_url %}
+                <a class="btn btn-sm btn-primary" href="{{ document.sharepoint_file_url }}" target="_blank" rel="noopener">Open SharePoint File</a>
+              {% else %}
+                <span class="text-muted">No SharePoint link</span>
+              {% endif %}
+            </dd>
+            <dt class="col-sm-4">SharePoint Status</dt>
+            <dd class="col-sm-8">{{ document.sharepoint_upload_status or "not configured" }}</dd>
+            <dt class="col-sm-4">Local File</dt>
             <dd class="col-sm-8">
               {% if document.stored_file_path %}
                 <a href="{{ url_for('documents.file', document_id=document.id) }}" target="_blank" rel="noopener">{{ document.file_name }}</a>
