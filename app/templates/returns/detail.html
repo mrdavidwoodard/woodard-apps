@@ -25,10 +25,15 @@
       <strong>Package Status: Ready for Extraction.</strong>
       {{ package_stats.received_required }} of {{ package_stats.total_required }} required documents received.
     </div>
-  {% else %}
+  {% elif package_stats.missing_required %}
     <div class="alert alert-light border app-alert">
       <strong>Package Status: Waiting on Documents.</strong>
       {{ package_stats.received_required }} of {{ package_stats.total_required }} required documents received.
+    </div>
+  {% else %}
+    <div class="alert alert-light border app-alert">
+      <strong>Package Status:</strong> {{ ui.status_badge(tax_return.status) }}
+      <span class="ms-2">{{ package_stats.received_required }} of {{ package_stats.total_required }} required documents received.</span>
     </div>
   {% endif %}
 

@@ -112,7 +112,7 @@ class TaxReturn(db.Model):
     reviewer_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     due_date = db.Column(db.Date, nullable=True)
     sharepoint_return_folder_url = db.Column(db.String(1024), nullable=True)
-    is_ready_for_extraction = db.Column(db.Boolean, nullable=False, default=False)
+    _is_ready_for_extraction = db.Column("is_ready_for_extraction", db.Boolean, nullable=False, default=False)
     extraction_started_at = db.Column(db.DateTime(timezone=True), nullable=True)
     extraction_completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
     review_completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
@@ -165,6 +165,34 @@ class TaxReturn(db.Model):
 
     def __repr__(self):
         return f"<TaxReturn client_id={self.client_id} tax_year={self.tax_year} return_type={self.return_type}>"
+
+    @property
+    def required_sections_complete(self):
+        """Return True when every required organizer section has all required items received."""
+        required_requirements = self.package_document_requirements.filter_by(is_required=True).all()
+        if not required_requirements:
+            return False
+
+        requirements_by_section = {}
+        for requirement in required_requirements:
+            section_key = requirement.section_id or 0
+            requirements_by_section.setdefault(section_key, []).append(requirement)
+
+        return all(
+            all(requirement.is_received for requirement in section_requirements)
+            for section_requirements in requirements_by_section.values()
+        )
+
+    @property
+    def is_ready_for_extraction(self):
+        """Calculate extraction readiness from organizer section completion and workflow state."""
+        can_be_marked_ready = self.status in {"new", "documents_received", "waiting_on_client"}
+        return can_be_marked_ready and self.required_sections_complete
+
+    @is_ready_for_extraction.setter
+    def is_ready_for_extraction(self, value):
+        # Keep the legacy database column available as a cached/backward-compatible value.
+        self._is_ready_for_extraction = bool(value)
 
 
 class Document(db.Model):
