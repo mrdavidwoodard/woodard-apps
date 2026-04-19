@@ -1,6 +1,6 @@
 import json
 
-from flask import Blueprint, flash, redirect, render_template, url_for
+from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import login_required
 
 from app import db
@@ -26,6 +26,114 @@ def extracted_value(extracted, field_name):
     if isinstance(fields, dict) and isinstance(fields.get(field_name), dict):
         return fields[field_name].get("value")
     return extracted.get(field_name) if isinstance(extracted, dict) else None
+
+
+def extracted_fields(extracted):
+    fields = extracted.get("fields") if isinstance(extracted, dict) else None
+    if isinstance(fields, dict):
+        return fields
+    return {}
+
+
+def confidence_level(confidence):
+    if confidence is None:
+        return None
+    if confidence >= 0.90:
+        return "high"
+    if confidence >= 0.75:
+        return "medium"
+    return "low"
+
+
+def confidence_badge_label(confidence):
+    level = confidence_level(confidence)
+    return level.title() if level else ""
+
+
+def confidence_badge_class(confidence):
+    level = confidence_level(confidence)
+    return f"confidence-{level}" if level else ""
+
+
+def readable_field_label(field_name):
+    return (field_name or "").replace("_", " ").title()
+
+
+PREP_SECTION_ORDER = [
+    "Taxpayer / Client Info",
+    "Wages and Withholding",
+    "Interest and Dividend Income",
+    "Business / Self-Employment",
+    "K-1 / Pass-Through Income",
+    "Deductions / Mortgage / Prior Year",
+    "Notes / Follow-Up",
+]
+
+
+def prep_section_for(document, latest_result=None):
+    document_type = ((latest_result.document_type_detected if latest_result else None) or document.document_type or "").lower()
+    document_type = document_type.replace("-", "_").replace(" ", "_")
+    if document_type == "organizer":
+        return "Taxpayer / Client Info"
+    if document_type == "w2":
+        return "Wages and Withholding"
+    if document_type in {"1099", "1099_int", "1099_div"}:
+        return "Interest and Dividend Income"
+    if document_type in {"schedule_c", "business", "self_employment"}:
+        return "Business / Self-Employment"
+    if document_type in {"k1", "k_1"}:
+        return "K-1 / Pass-Through Income"
+    if document_type in {"1098", "mortgage", "prior_year"}:
+        return "Deductions / Mortgage / Prior Year"
+    return "Notes / Follow-Up"
+
+
+def worksheet_rows_for_document(document, latest_result):
+    extracted = latest_result.extracted_json or {}
+    field_payloads = extracted_fields(extracted)
+    rows = []
+    if field_payloads:
+        for field_name, payload in field_payloads.items():
+            if isinstance(payload, dict):
+                value = payload.get("value")
+                confidence = payload.get("confidence")
+            else:
+                value = payload
+                confidence = None
+            rows.append(
+                {
+                    "label": readable_field_label(field_name),
+                    "value": value,
+                    "source_document": document,
+                    "confidence": confidence if isinstance(confidence, (int, float)) else None,
+                }
+            )
+        return rows
+
+    for field_name, value in extracted.items():
+        if isinstance(value, (dict, list)):
+            continue
+        rows.append(
+            {
+                "label": readable_field_label(field_name),
+                "value": value,
+                "source_document": document,
+                "confidence": None,
+            }
+        )
+    return rows
+
+
+def prep_worksheet_sections_for(package):
+    sections = {section: [] for section in PREP_SECTION_ORDER}
+    for document in package.documents.order_by(Document.uploaded_at.asc()).all():
+        latest_result = latest_result_for(document)
+        if not latest_result:
+            continue
+        section = prep_section_for(document, latest_result)
+        sections.setdefault(section, [])
+        sections[section].extend(worksheet_rows_for_document(document, latest_result))
+    return [(section, rows) for section, rows in sections.items()]
 
 
 def prep_summary_for(documents):
@@ -101,6 +209,29 @@ def detail(tax_return_id):
     )
 
 
+@prep_bp.route("/package/<int:package_id>")
+@login_required
+def worksheet(package_id):
+    package = TaxReturn.query.get_or_404(package_id)
+    return render_template(
+        "prep/worksheet.html",
+        package=package,
+        worksheet_sections=prep_worksheet_sections_for(package),
+        confidence_badge_class=confidence_badge_class,
+        confidence_badge_label=confidence_badge_label,
+    )
+
+
+@prep_bp.route("/package/<int:package_id>/notes", methods=["POST"])
+@login_required
+def update_notes(package_id):
+    package = TaxReturn.query.get_or_404(package_id)
+    package.prep_notes = request.form.get("prep_notes", "").strip() or None
+    db.session.commit()
+    flash("Prep worksheet notes saved.", "success")
+    return redirect(url_for("prep.worksheet", package_id=package.id))
+
+
 @prep_bp.route("/tax-return/<int:tax_return_id>/start", methods=["POST"])
 @login_required
 def start(tax_return_id):
@@ -110,7 +241,8 @@ def start(tax_return_id):
         tax_return.prep_started_at = utc_now()
     db.session.commit()
     flash("Prep started.", "success")
-    return redirect(url_for("prep.detail", tax_return_id=tax_return.id))
+    next_url = request.form.get("next") or url_for("prep.detail", tax_return_id=tax_return.id)
+    return redirect(next_url)
 
 
 @prep_bp.route("/tax-return/<int:tax_return_id>/complete", methods=["POST"])
@@ -121,4 +253,15 @@ def complete(tax_return_id):
     tax_return.prep_completed_at = utc_now()
     db.session.commit()
     flash("Prep completed and moved to review.", "success")
-    return redirect(url_for("prep.detail", tax_return_id=tax_return.id))
+    next_url = request.form.get("next") or url_for("prep.detail", tax_return_id=tax_return.id)
+    return redirect(next_url)
+
+
+@prep_bp.route("/package/<int:package_id>/send-back", methods=["POST"])
+@login_required
+def send_back(package_id):
+    package = TaxReturn.query.get_or_404(package_id)
+    package.status = "organizer_review_pending"
+    db.session.commit()
+    flash("Package sent back to review.", "warning")
+    return redirect(url_for("prep.worksheet", package_id=package.id))

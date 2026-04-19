@@ -11,11 +11,22 @@
         <form method="post" action="{{ url_for('compiler.approve_package', package_id=package.id) }}">
           <button class="btn btn-success" type="submit">Approve Package for Prep</button>
         </form>
+      {% else %}
+        <button class="btn btn-outline-secondary" type="button" disabled>Resolve Issues Before Approval</button>
+      {% endif %}
+      {% if package.status in ["ready_for_prep", "in_prep", "in_review"] %}
+        <a class="btn btn-outline-primary" href="{{ url_for('prep.worksheet', package_id=package.id) }}">Open Prep Worksheet</a>
       {% endif %}
       <a class="btn btn-outline-secondary" href="{{ url_for('packages.detail', package_id=package.id) }}">Back to Intake Package</a>
     </div>
   {% endset %}
   {{ ui.page_header("Package Review", package.client.display_name ~ " · " ~ package.tax_year ~ " · " ~ package.return_type, actions) }}
+
+  {% if issues %}
+    <div class="alert alert-warning app-alert">
+      This package has unresolved issues that must be reviewed before approval.
+    </div>
+  {% endif %}
 
   <div class="row g-3">
     <div class="col-12 col-lg-6">

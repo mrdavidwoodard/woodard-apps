@@ -223,8 +223,7 @@ def package_review_issues_for(package):
 def can_approve_package(package):
     documents = package.documents.all()
     has_extracted_document = any(document.extraction_results.count() for document in documents)
-    has_exception = any(document.status == "exception" for document in documents)
-    return has_extracted_document and not has_exception
+    return has_extracted_document and not package_review_issues_for(package)
 
 
 def has_saved_corrections(document):
@@ -308,7 +307,7 @@ def package_review(package_id):
 def approve_package(package_id):
     package = TaxReturn.query.get_or_404(package_id)
     if not can_approve_package(package):
-        flash("Package cannot be approved while exceptions exist or no extracted documents are available.", "danger")
+        flash("This package has unresolved issues that must be reviewed before approval.", "danger")
         return redirect(url_for("compiler.package_review", package_id=package.id))
 
     package.status = "ready_for_prep"

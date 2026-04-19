@@ -30,6 +30,7 @@
           <td>{{ tax_return.due_date.strftime("%Y-%m-%d") if tax_return.due_date else "" }}</td>
           <td>{{ row.approved_document_count }}</td>
           <td class="text-end">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('prep.worksheet', package_id=tax_return.id) }}">Open Prep Worksheet</a>
             <a class="btn btn-sm btn-outline-primary" href="{{ url_for('prep.detail', tax_return_id=tax_return.id) }}">Open Prep Packet</a>
           </td>
         </tr>

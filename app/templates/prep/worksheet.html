@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% import "_components.html" as ui %}
+
+{% block title %}Prep Worksheet | Woodard Apps{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column gap-3">
+  {% set actions %}
+    <div class="d-flex flex-wrap gap-2 justify-content-end">
+      <form method="post" action="{{ url_for('prep.start', tax_return_id=package.id) }}">
+        <input type="hidden" name="next" value="{{ url_for('prep.worksheet', package_id=package.id) }}">
+        <button class="btn btn-primary" type="submit">Start Prep</button>
+      </form>
+      <form method="post" action="{{ url_for('prep.complete', tax_return_id=package.id) }}">
+        <input type="hidden" name="next" value="{{ url_for('prep.worksheet', package_id=package.id) }}">
+        <button class="btn btn-success" type="submit">Mark Prep Complete</button>
+      </form>
+      <form method="post" action="{{ url_for('prep.send_back', package_id=package.id) }}">
+        <button class="btn btn-outline-warning" type="submit">Send Back to Review</button>
+      </form>
+      <a class="btn btn-outline-secondary" href="{{ url_for('prep.queue') }}">Back to Prep Queue</a>
+    </div>
+  {% endset %}
+  {{ ui.page_header("Prep Worksheet", package.client.display_name ~ " · " ~ package.tax_year ~ " · supports Lacerte work", actions) }}
+
+  {% if package.status not in ["ready_for_prep", "in_prep", "in_review"] %}
+    <div class="alert alert-warning app-alert">
+      This package is not currently marked ready for prep. Review status before beginning Lacerte work.
+    </div>
+  {% endif %}
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          {{ ui.section_title("Client Info") }}
+          <dl class="row mb-0 mt-3">
+            <dt class="col-sm-4">Client</dt>
+            <dd class="col-sm-8">{{ package.client.display_name }}</dd>
+            <dt class="col-sm-4">Client Type</dt>
+            <dd class="col-sm-8">{{ package.client.client_type }}</dd>
+            <dt class="col-sm-4">Contact</dt>
+            <dd class="col-sm-8">{{ package.client.primary_contact_name or "" }}</dd>
+            <dt class="col-sm-4">Tax Year</dt>
+            <dd class="col-sm-8">{{ package.tax_year }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          {{ ui.section_title("Workflow Status") }}
+          <dl class="row mb-0 mt-3">
+            <dt class="col-sm-5">Intake Status</dt>
+            <dd class="col-sm-7">{{ ui.status_badge(package.status) }}</dd>
+            <dt class="col-sm-5">Prep Status</dt>
+            <dd class="col-sm-7">{{ ui.status_badge(package.status) if package.status in ["ready_for_prep", "in_prep", "in_review"] else "Not Started" }}</dd>
+            <dt class="col-sm-5">Review Completed</dt>
+            <dd class="col-sm-7">{{ package.review_completed_at.strftime("%Y-%m-%d %I:%M %p") if package.review_completed_at else "" }}</dd>
+            <dt class="col-sm-5">Prep Started</dt>
+            <dd class="col-sm-7">{{ package.prep_started_at.strftime("%Y-%m-%d %I:%M %p") if package.prep_started_at else "" }}</dd>
+            <dt class="col-sm-5">Prep Completed</dt>
+            <dd class="col-sm-7">{{ package.prep_completed_at.strftime("%Y-%m-%d %I:%M %p") if package.prep_completed_at else "" }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  {% for section, rows in worksheet_sections %}
+    <div class="card">
+      <div class="card-body">
+        {{ ui.section_title(section) }}
+        <div class="table-responsive mt-3">
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Field</th>
+                <th scope="col">Value</th>
+                <th scope="col">Source</th>
+                <th scope="col">Confidence</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for row in rows %}
+                <tr>
+                  <td>{{ row.label }}</td>
+                  <td>{{ row.value if row.value is not none else "" }}</td>
+                  <td>
+                    <a href="{{ url_for('documents.detail', document_id=row.source_document.id) }}">
+                      {{ row.source_document.original_file_name or row.source_document.file_name }}
+                    </a>
+                  </td>
+                  <td>
+                    {% if row.confidence is not none %}
+                      <span class="confidence-badge {{ confidence_badge_class(row.confidence) }}">{{ confidence_badge_label(row.confidence) }}</span>
+                    {% else %}
+                      <span class="text-muted">None</span>
+                    {% endif %}
+                  </td>
+                </tr>
+              {% else %}
+                <tr>
+                  <td class="text-muted text-center py-4" colspan="4">No prep worksheet values in this section.</td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+
+  <div class="card">
+    <div class="card-body">
+      {{ ui.section_title("Notes / Follow-Up", "Preparer notes for Lacerte work and open questions.") }}
+      <form class="mt-3" method="post" action="{{ url_for('prep.update_notes', package_id=package.id) }}">
+        <label class="form-label" for="prep_notes">Prep notes</label>
+        <textarea class="form-control" id="prep_notes" name="prep_notes" rows="5">{{ package.prep_notes or "" }}</textarea>
+        <div class="mt-3">
+          <button class="btn btn-outline-primary" type="submit">Save Notes</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

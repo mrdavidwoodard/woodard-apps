@@ -106,6 +106,7 @@ class TaxReturn(db.Model):
     status = db.Column(db.String(50), nullable=False, default="new")
     is_waiting_on_client = db.Column(db.Boolean, nullable=False, default=False)
     missing_docs_notes = db.Column(db.Text, nullable=True)
+    prep_notes = db.Column(db.Text, nullable=True)
     assigned_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     reviewer_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     due_date = db.Column(db.Date, nullable=True)
