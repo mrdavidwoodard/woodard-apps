@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+
+{% block title %}Document Detail | Woodard Apps{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column gap-3">
+  <div class="d-flex justify-content-between align-items-start gap-3">
+    <div>
+      <h1 class="h3 mb-1">{{ document.original_file_name or document.file_name }}</h1>
+      <p class="text-muted mb-0">{{ document.client.display_name }} · {{ document.tax_return.tax_year }} {{ document.tax_return.return_type }}</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('returns.returns_detail', tax_return_id=document.tax_return_id) }}">Back to Return</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Document Metadata</h2>
+          <dl class="row mb-0">
+            <dt class="col-sm-4">Client</dt>
+            <dd class="col-sm-8">{{ document.client.display_name }}</dd>
+            <dt class="col-sm-4">Document Type</dt>
+            <dd class="col-sm-8">{{ document.document_type }}</dd>
+            <dt class="col-sm-4">Status</dt>
+            <dd class="col-sm-8">{{ document.status }}</dd>
+            <dt class="col-sm-4">Source</dt>
+            <dd class="col-sm-8">{{ document.source }}</dd>
+            <dt class="col-sm-4">Uploaded</dt>
+            <dd class="col-sm-8">{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</dd>
+            <dt class="col-sm-4">File</dt>
+            <dd class="col-sm-8">
+              {% if document.stored_file_path %}
+                <a href="{{ url_for('documents.file', document_id=document.id) }}" target="_blank" rel="noopener">{{ document.file_name }}</a>
+              {% else %}
+                <span class="text-muted">No local file available</span>
+              {% endif %}
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Tax Return Info</h2>
+          <dl class="row mb-0">
+            <dt class="col-sm-4">Tax Year</dt>
+            <dd class="col-sm-8">{{ document.tax_return.tax_year }}</dd>
+            <dt class="col-sm-4">Return Type</dt>
+            <dd class="col-sm-8">{{ document.tax_return.return_type }}</dd>
+            <dt class="col-sm-4">Return Status</dt>
+            <dd class="col-sm-8">{{ document.tax_return.status }}</dd>
+          </dl>
+          <form class="mt-3" method="post" action="{{ url_for('documents.extract', document_id=document.id) }}">
+            <button class="btn btn-primary" type="submit">Send to Extractor</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5">Extraction Jobs</h2>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Job Type</th>
+              <th scope="col">Status</th>
+              <th scope="col">Attempt</th>
+              <th scope="col">Started</th>
+              <th scope="col">Completed</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for job in extraction_jobs %}
+              <tr>
+                <td>{{ job.job_type }}</td>
+                <td>{{ job.status }}</td>
+                <td>{{ job.attempt_count }} / {{ job.max_attempts }}</td>
+                <td>{{ job.started_at.strftime("%Y-%m-%d %I:%M %p") if job.started_at else "" }}</td>
+                <td>{{ job.completed_at.strftime("%Y-%m-%d %I:%M %p") if job.completed_at else "" }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td class="text-muted text-center py-4" colspan="5">No extraction jobs have been created for this document.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5">Latest Extraction Result</h2>
+      {% if latest_result %}
+        <dl class="row">
+          <dt class="col-sm-3">Detected Type</dt>
+          <dd class="col-sm-9">{{ latest_result.document_type_detected }}</dd>
+          <dt class="col-sm-3">Confidence</dt>
+          <dd class="col-sm-9">{{ "%.0f"|format((latest_result.confidence_score or 0) * 100) }}%</dd>
+          <dt class="col-sm-3">Validation</dt>
+          <dd class="col-sm-9">{{ latest_result.validation_status }}</dd>
+          <dt class="col-sm-3">Model</dt>
+          <dd class="col-sm-9">{{ latest_result.model_name }}</dd>
+        </dl>
+        <pre class="bg-light border rounded p-3 mb-0"><code>{{ latest_result.extracted_json | tojson(indent=2) }}</code></pre>
+      {% else %}
+        <p class="text-muted mb-0">No extraction result exists yet.</p>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

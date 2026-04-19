@@ -49,6 +49,7 @@
             <select class="form-select" id="document_type" name="document_type" required>
               <option value="source_document" {% if selected_document_type == 'source_document' %}selected{% endif %}>Source document</option>
               <option value="w2" {% if selected_document_type == 'w2' %}selected{% endif %}>W-2</option>
+              <option value="1099_int" {% if selected_document_type == '1099_int' %}selected{% endif %}>1099-INT</option>
               <option value="1099" {% if selected_document_type == '1099' %}selected{% endif %}>1099</option>
               <option value="organizer" {% if selected_document_type == 'organizer' %}selected{% endif %}>Organizer</option>
               <option value="other" {% if selected_document_type == 'other' %}selected{% endif %}>Other</option>

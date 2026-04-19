@@ -112,6 +112,18 @@ class TaxReturn(db.Model):
         cascade="all, delete-orphan",
         lazy="dynamic",
     )
+    extraction_jobs = db.relationship(
+        "ExtractionJob",
+        back_populates="tax_return",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
+    extraction_results = db.relationship(
+        "ExtractionResult",
+        back_populates="tax_return",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
     assigned_user = db.relationship(
         "User",
         foreign_keys=[assigned_user_id],
@@ -155,9 +167,75 @@ class Document(db.Model):
         foreign_keys=[uploaded_by_user_id],
         back_populates="uploaded_documents",
     )
+    extraction_jobs = db.relationship(
+        "ExtractionJob",
+        back_populates="document",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
+    extraction_results = db.relationship(
+        "ExtractionResult",
+        back_populates="document",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
 
     def __repr__(self):
         return f"<Document {self.file_name}>"
+
+
+class ExtractionJob(db.Model):
+    __tablename__ = "extraction_jobs"
+
+    id = db.Column(db.Integer, primary_key=True)
+    document_id = db.Column(db.Integer, db.ForeignKey("documents.id"), nullable=False, index=True)
+    tax_return_id = db.Column(db.Integer, db.ForeignKey("tax_returns.id"), nullable=False, index=True)
+    job_type = db.Column(db.String(80), nullable=False, default="extract")
+    status = db.Column(db.String(50), nullable=False, default="queued")
+    attempt_count = db.Column(db.Integer, nullable=False, default=1)
+    max_attempts = db.Column(db.Integer, nullable=False, default=2)
+    started_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    error_code = db.Column(db.String(80), nullable=True)
+    error_message = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+    document = db.relationship("Document", back_populates="extraction_jobs")
+    tax_return = db.relationship("TaxReturn", back_populates="extraction_jobs")
+    extraction_results = db.relationship(
+        "ExtractionResult",
+        back_populates="extraction_job",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
+
+    def __repr__(self):
+        return f"<ExtractionJob document_id={self.document_id} status={self.status}>"
+
+
+class ExtractionResult(db.Model):
+    __tablename__ = "extraction_results"
+
+    id = db.Column(db.Integer, primary_key=True)
+    extraction_job_id = db.Column(db.Integer, db.ForeignKey("extraction_jobs.id"), nullable=False, index=True)
+    document_id = db.Column(db.Integer, db.ForeignKey("documents.id"), nullable=False, index=True)
+    tax_return_id = db.Column(db.Integer, db.ForeignKey("tax_returns.id"), nullable=False, index=True)
+    document_type_detected = db.Column(db.String(80), nullable=True)
+    confidence_score = db.Column(db.Float, nullable=True)
+    validation_status = db.Column(db.String(50), nullable=False, default="passed")
+    is_ready_for_review = db.Column(db.Boolean, nullable=False, default=True)
+    extracted_json = db.Column(db.JSON, nullable=False)
+    validation_messages_json = db.Column(db.JSON, nullable=True)
+    model_name = db.Column(db.String(120), nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now)
+
+    extraction_job = db.relationship("ExtractionJob", back_populates="extraction_results")
+    document = db.relationship("Document", back_populates="extraction_results")
+    tax_return = db.relationship("TaxReturn", back_populates="extraction_results")
+
+    def __repr__(self):
+        return f"<ExtractionResult document_id={self.document_id} confidence={self.confidence_score}>"
 
 
 def seed_default_user():

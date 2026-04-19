@@ -33,6 +33,7 @@ def create_app(config_name=None):
     from app.models import User, seed_default_user
     from app.routes.auth import auth_bp
     from app.routes.dashboard import dashboard_bp
+    from app.routes.documents import documents_bp
     from app.routes.ingester import ingester_bp
     from app.routes.returns import returns_bp
 
@@ -42,6 +43,7 @@ def create_app(config_name=None):
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
+    app.register_blueprint(documents_bp)
     app.register_blueprint(ingester_bp)
     app.register_blueprint(returns_bp)
 

@@ -56,6 +56,7 @@
               <th scope="col">File Name</th>
               <th scope="col">Status</th>
               <th scope="col">Uploaded</th>
+              <th scope="col">Extraction</th>
               <th scope="col"></th>
             </tr>
           </thead>
@@ -66,15 +67,25 @@
                 <td>{{ document.original_file_name or document.file_name }}</td>
                 <td>{{ document.status }}</td>
                 <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
+                <td>
+                  {% if document.extraction_results.count() %}
+                    <span class="badge text-bg-success">Result ready</span>
+                  {% elif document.extraction_jobs.count() %}
+                    <span class="badge text-bg-secondary">Job created</span>
+                  {% else %}
+                    <span class="badge text-bg-light">Not started</span>
+                  {% endif %}
+                </td>
                 <td class="text-end">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('documents.detail', document_id=document.id) }}">Details</a>
                   {% if document.stored_file_path %}
-                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.document_file', document_id=document.id) }}" target="_blank" rel="noopener">Open</a>
+                    <a class="btn btn-sm btn-outline-primary" href="{{ url_for('documents.file', document_id=document.id) }}" target="_blank" rel="noopener">Open</a>
                   {% endif %}
                 </td>
               </tr>
             {% else %}
               <tr>
-                <td class="text-muted text-center py-4" colspan="5">No documents have been uploaded for this return.</td>
+                <td class="text-muted text-center py-4" colspan="6">No documents have been uploaded for this return.</td>
               </tr>
             {% endfor %}
           </tbody>

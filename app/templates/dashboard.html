@@ -34,6 +34,30 @@
         </div>
       </div>
     </div>
+    <div class="col-12 col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Extraction Jobs</div>
+          <div class="display-6">{{ counts.extraction_jobs }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Extraction Results</div>
+          <div class="display-6">{{ counts.extraction_results }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Pending Review</div>
+          <div class="display-6">{{ counts.documents_pending_review }}</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -58,7 +82,7 @@
                 <td>{{ document.document_type }}</td>
                 <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
                 <td class="text-end">
-                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.returns_detail', tax_return_id=document.tax_return_id) }}">View Return</a>
+                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('documents.detail', document_id=document.id) }}">View Document</a>
                 </td>
               </tr>
             {% else %}
