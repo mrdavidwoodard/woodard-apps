@@ -9,7 +9,7 @@
   <div class="col-12 col-lg-9">
     {% if detail_url %}
       <div class="alert alert-success">
-        Upload complete. <a class="alert-link" href="{{ detail_url }}">View the return record</a>.
+        Upload complete. <a class="alert-link" href="{{ detail_url }}">View the client work</a>.
       </div>
     {% endif %}
     <form method="post" enctype="multipart/form-data" class="card">
@@ -35,7 +35,7 @@
             <input class="form-control" id="tax_year" name="tax_year" type="number" min="1900" max="2200" value="{{ form_data.tax_year if form_data else '' }}" required>
           </div>
           <div class="col-12 col-md-4">
-            <label class="form-label" for="return_type">Return type</label>
+            <label class="form-label" for="return_type">Intake package</label>
             {% set selected_return_type = form_data.return_type if form_data else '1040' %}
             <select class="form-select" id="return_type" name="return_type" required>
               <option value="1040" {% if selected_return_type == '1040' %}selected{% endif %}>1040</option>

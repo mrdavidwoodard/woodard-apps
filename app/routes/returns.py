@@ -2,6 +2,8 @@ from flask import Blueprint, redirect, render_template, url_for
 from flask_login import login_required
 
 from app.models import Document, TaxReturn
+from app import db
+from app.services.package_readiness import package_document_stats, recalculate_package_readiness, requirements_for
 
 returns_bp = Blueprint("returns", __name__)
 
@@ -21,8 +23,16 @@ def returns_index():
 @login_required
 def returns_detail(tax_return_id):
     tax_return = TaxReturn.query.get_or_404(tax_return_id)
+    recalculate_package_readiness(tax_return)
+    db.session.commit()
     documents = tax_return.documents.order_by(Document.uploaded_at.desc()).all()
-    return render_template("returns/detail.html", tax_return=tax_return, documents=documents)
+    return render_template(
+        "returns/detail.html",
+        tax_return=tax_return,
+        documents=documents,
+        package_stats=package_document_stats(tax_return),
+        requirements=requirements_for(tax_return),
+    )
 
 
 @returns_bp.route("/documents/<int:document_id>/file")

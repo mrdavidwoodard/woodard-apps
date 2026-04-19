@@ -6,7 +6,7 @@
 {% block content %}
 <div class="d-flex flex-column gap-3">
   {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('prep.queue') }}">Back to Prep Queue</a>{% endset %}
-  {{ ui.page_header("Prep Packet: " ~ tax_return.client.display_name, tax_return.tax_year ~ " " ~ tax_return.return_type ~ " return", actions) }}
+  {{ ui.page_header("Prep Packet: " ~ tax_return.client.display_name, tax_return.tax_year ~ " " ~ tax_return.return_type ~ " client work · supports Lacerte preparation", actions) }}
 
   <div class="row g-3">
     <div class="col-12 col-lg-6">
@@ -27,9 +27,9 @@
     <div class="col-12 col-lg-6">
       <div class="card h-100">
         <div class="card-body">
-          <h2 class="h5">Return Info</h2>
+          <h2 class="h5">Client Work Info</h2>
           <dl class="row mb-0">
-            <dt class="col-sm-4">Status</dt>
+            <dt class="col-sm-4">Prep Status</dt>
             <dd class="col-sm-8">{{ ui.status_badge(tax_return.status) }}</dd>
             <dt class="col-sm-4">Due Date</dt>
             <dd class="col-sm-8">{{ tax_return.due_date.strftime("%Y-%m-%d") if tax_return.due_date else "" }}</dd>

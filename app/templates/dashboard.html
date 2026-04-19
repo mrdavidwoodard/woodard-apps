@@ -8,7 +8,7 @@
 
 <div class="row g-3 mb-4">
   <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Clients", counts.clients) }}</div>
-  <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Tax Returns", counts.tax_returns) }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Client Work", counts.tax_returns) }}</div>
   <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Documents", counts.documents) }}</div>
   <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Pending Review", counts.documents_pending_review, url_for('compiler.queue'), "Open Compiler") }}</div>
   <div class="col-12 col-md-6 col-xl-3">{{ ui.summary_card("Ready for Prep", counts.returns_ready_for_prep, url_for('prep.queue'), "Open Prep") }}</div>
@@ -19,16 +19,16 @@
 
 <div class="row g-3 mb-4">
   <div class="col-12 col-md-6 col-xl-3">{{ ui.module_card("Ingester", "Upload source documents and create intake records.", url_for('ingester.upload'), "Open Ingester") }}</div>
-  <div class="col-12 col-md-6 col-xl-3">{{ ui.module_card("Informer", "Monitor queues, exceptions, and operational status.", url_for('informer.overview'), "Open Informer") }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.module_card("Informer", "Monitor queues, exceptions, and workflow status.", url_for('informer.overview'), "Open Informer") }}</div>
   <div class="col-12 col-md-6 col-xl-3">{{ ui.module_card("Compiler", "Review extracted data and approve documents.", url_for('compiler.queue'), "Open Compiler") }}</div>
-  <div class="col-12 col-md-6 col-xl-3">{{ ui.module_card("Prep", "Stage approved returns for preparation.", url_for('prep.queue'), "Open Prep") }}</div>
+  <div class="col-12 col-md-6 col-xl-3">{{ ui.module_card("Prep", "Stage approved client work for Lacerte preparation support.", url_for('prep.queue'), "Open Prep") }}</div>
 </div>
 
 <div class="card">
   <div class="card-body">
     <div class="d-flex justify-content-between align-items-center mb-3">
       {{ ui.section_title("Recent Uploaded Documents", "Latest intake activity across clients.") }}
-      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.returns_index') }}">View Returns</a>
+      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('packages.index') }}">View Client Work</a>
     </div>
     <div class="table-responsive">
       <table class="table table-striped align-middle">
@@ -37,7 +37,7 @@
             <th scope="col">Client</th>
             <th scope="col">Document</th>
             <th scope="col">Type</th>
-            <th scope="col">Status</th>
+            <th scope="col">Document Status</th>
             <th scope="col">Uploaded</th>
             <th scope="col"></th>
           </tr>

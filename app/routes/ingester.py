@@ -7,6 +7,7 @@ from werkzeug.utils import secure_filename
 
 from app import db
 from app.models import Client, Document, TaxReturn
+from app.services.package_readiness import match_document_to_requirement, recalculate_package_readiness
 from app.services import sharepoint
 
 ingester_bp = Blueprint("ingester", __name__, url_prefix="/ingester")
@@ -57,7 +58,7 @@ def upload():
 
         required_values = [client_name, client_type, tax_year, return_type, document_type, source]
         if not all(required_values):
-            flash("Client, return, and document details are required.", "danger")
+            flash("Client, intake package, and document details are required.", "danger")
             return render_template("ingester/upload.html", form_data=form_data)
 
         if not uploaded_file or not uploaded_file.filename:
@@ -88,20 +89,26 @@ def upload():
         else:
             client.client_type = client_type
 
-        tax_return = TaxReturn(
+        tax_return = TaxReturn.query.filter_by(
             client=client,
             tax_year=tax_year_int,
             return_type=return_type,
-            status="new",
-            assigned_user=current_user,
-        )
+        ).first()
+        if not tax_return:
+            tax_return = TaxReturn(
+                client=client,
+                tax_year=tax_year_int,
+                return_type=return_type,
+                status="new",
+                assigned_user=current_user,
+            )
+            db.session.add(tax_return)
         try:
             destination, stored_file_path = get_upload_destination(client.display_name, tax_year_int, uploaded_file.filename)
             uploaded_file.save(destination)
             file_size_bytes = destination.stat().st_size
             file_extension = destination.suffix.lstrip(".").lower()
 
-            db.session.add(tax_return)
             db.session.flush()
 
             document = Document(
@@ -141,6 +148,9 @@ def upload():
                 flash("Document saved locally, but SharePoint upload failed.", "warning")
 
             db.session.add(document)
+            db.session.flush()
+            match_document_to_requirement(tax_return, document)
+            recalculate_package_readiness(tax_return)
             db.session.commit()
         except Exception:
             db.session.rollback()
@@ -156,7 +166,7 @@ def upload():
         flash("Document uploaded and intake record created.", "success")
         return render_template(
             "ingester/upload.html",
-            detail_url=url_for("returns.returns_detail", tax_return_id=tax_return.id),
+            detail_url=url_for("packages.detail", package_id=tax_return.id),
         )
 
     return render_template("ingester/upload.html")

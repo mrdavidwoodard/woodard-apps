@@ -110,6 +110,9 @@ class TaxReturn(db.Model):
     reviewer_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     due_date = db.Column(db.Date, nullable=True)
     sharepoint_return_folder_url = db.Column(db.String(1024), nullable=True)
+    is_ready_for_extraction = db.Column(db.Boolean, nullable=False, default=False)
+    extraction_started_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    extraction_completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
     prep_started_at = db.Column(db.DateTime(timezone=True), nullable=True)
     prep_completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
@@ -136,6 +139,12 @@ class TaxReturn(db.Model):
     )
     review_actions = db.relationship(
         "ReviewAction",
+        back_populates="tax_return",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
+    package_document_requirements = db.relationship(
+        "PackageDocumentRequirement",
         back_populates="tax_return",
         cascade="all, delete-orphan",
         lazy="dynamic",
@@ -205,9 +214,36 @@ class Document(db.Model):
         cascade="all, delete-orphan",
         lazy="dynamic",
     )
+    package_requirements = db.relationship(
+        "PackageDocumentRequirement",
+        back_populates="document",
+        lazy="dynamic",
+    )
 
     def __repr__(self):
         return f"<Document {self.file_name}>"
+
+
+class PackageDocumentRequirement(db.Model):
+    __tablename__ = "package_document_requirements"
+
+    id = db.Column(db.Integer, primary_key=True)
+    tax_return_id = db.Column(db.Integer, db.ForeignKey("tax_returns.id"), nullable=False, index=True)
+    document_id = db.Column(db.Integer, db.ForeignKey("documents.id"), nullable=True, index=True)
+    document_type = db.Column(db.String(80), nullable=False)
+    display_name = db.Column(db.String(120), nullable=False)
+    is_required = db.Column(db.Boolean, nullable=False, default=True)
+    is_received = db.Column(db.Boolean, nullable=False, default=False)
+    received_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+    updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now)
+
+    tax_return = db.relationship("TaxReturn", back_populates="package_document_requirements")
+    document = db.relationship("Document", back_populates="package_requirements")
+
+    def __repr__(self):
+        return f"<PackageDocumentRequirement tax_return_id={self.tax_return_id} document_type={self.document_type}>"
 
 
 class ExtractionJob(db.Model):

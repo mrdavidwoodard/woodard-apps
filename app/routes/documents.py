@@ -57,6 +57,50 @@ def build_mock_extraction(document):
     }
 
 
+def run_mock_extraction_for_document(document):
+    """Create an extraction job/result for one document using the mock extractor."""
+    now = utc_now()
+    job = ExtractionJob(
+        document=document,
+        tax_return=document.tax_return,
+        job_type="extract",
+        status="running",
+        attempt_count=1,
+        max_attempts=2,
+        started_at=now,
+    )
+    db.session.add(job)
+    db.session.flush()
+
+    try:
+        mock_result = build_mock_extraction(document)
+        job.status = "completed"
+        job.completed_at = utc_now()
+
+        result = ExtractionResult(
+            extraction_job=job,
+            document=document,
+            tax_return=document.tax_return,
+            document_type_detected=mock_result["document_type_detected"],
+            confidence_score=mock_result["confidence_score"],
+            validation_status="passed",
+            is_ready_for_review=True,
+            extracted_json=mock_result["extracted_json"],
+            validation_messages_json=mock_result["validation_messages_json"],
+            model_name=mock_result["model_name"],
+        )
+        db.session.add(result)
+        document.status = "review_pending"
+        return job, result
+    except Exception as exc:
+        job.status = "failed"
+        job.completed_at = utc_now()
+        job.error_code = "mock_extractor_error"
+        job.error_message = str(exc)
+        document.status = "exception"
+        raise
+
+
 @documents_bp.route("/documents/<int:document_id>")
 @login_required
 def detail(document_id):
@@ -77,40 +121,8 @@ def detail(document_id):
 @login_required
 def extract(document_id):
     document = Document.query.get_or_404(document_id)
-    now = utc_now()
-    job = ExtractionJob(
-        document=document,
-        tax_return=document.tax_return,
-        job_type="extract",
-        status="running",
-        attempt_count=1,
-        max_attempts=2,
-        started_at=now,
-    )
-
     try:
-        db.session.add(job)
-        db.session.flush()
-
-        mock_result = build_mock_extraction(document)
-        job.status = "completed"
-        job.completed_at = utc_now()
-
-        result = ExtractionResult(
-            extraction_job=job,
-            document=document,
-            tax_return=document.tax_return,
-            document_type_detected=mock_result["document_type_detected"],
-            confidence_score=mock_result["confidence_score"],
-            validation_status="passed",
-            is_ready_for_review=True,
-            extracted_json=mock_result["extracted_json"],
-            validation_messages_json=mock_result["validation_messages_json"],
-            model_name=mock_result["model_name"],
-        )
-        db.session.add(result)
-
-        document.status = "review_pending"
+        run_mock_extraction_for_document(document)
         if document.tax_return.status in {"new", "documents_received"}:
             document.tax_return.status = "review_pending"
 
@@ -118,12 +130,6 @@ def extract(document_id):
         flash("Mock extraction completed. Document is ready for review.", "success")
     except Exception as exc:
         db.session.rollback()
-        job.status = "failed"
-        job.completed_at = utc_now()
-        job.error_code = "mock_extractor_error"
-        job.error_message = str(exc)
-        db.session.add(job)
-        db.session.commit()
         current_app.logger.exception("Mock extraction failed for document_id=%s", document.id)
         flash("Mock extraction failed. Please try again.", "danger")
 

@@ -318,13 +318,16 @@ body {
 }
 
 .status-new,
-.status-uploaded {
+.status-uploaded,
+.status-documents_received {
   background: #edf4ff;
   color: #2b5c9a;
 }
 
 .status-review_pending,
-.status-mock_uploaded {
+.status-mock_uploaded,
+.status-organizer_review_pending,
+.status-extraction_in_progress {
   background: #e6f5fb;
   color: #176b8a;
 }
@@ -336,14 +339,16 @@ body {
 }
 
 .status-in_prep,
-.status-in_review {
+.status-in_review,
+.status-waiting_on_client {
   background: #fff4d8;
   color: #9a5b0b;
 }
 
 .status-exception,
 .status-failed,
-.status-on_hold {
+.status-on_hold,
+.status-exceptions_pending {
   background: #fde8e6;
   color: #a33a32;
 }

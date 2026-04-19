@@ -38,7 +38,7 @@
               <dd class="col-sm-8">{{ document.original_file_name or document.file_name }}</dd>
               <dt class="col-sm-4">Uploaded</dt>
               <dd class="col-sm-8">{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</dd>
-              <dt class="col-sm-4">Status</dt>
+              <dt class="col-sm-4">Review Status</dt>
               <dd class="col-sm-8">{{ ui.status_badge(document.status) }}</dd>
             </dl>
           </div>

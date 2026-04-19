@@ -5,7 +5,7 @@
 
 {% block content %}
 <div class="d-flex flex-column gap-3">
-  {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('returns.returns_detail', tax_return_id=document.tax_return_id) }}">Back to Return</a>{% endset %}
+  {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('packages.detail', package_id=document.tax_return_id) }}">Back to Client Work</a>{% endset %}
   {{ ui.page_header(document.original_file_name or document.file_name, document.client.display_name ~ " · " ~ document.tax_return.tax_year ~ " " ~ document.tax_return.return_type, actions) }}
 
   <div class="row g-3">
@@ -18,7 +18,7 @@
             <dd class="col-sm-8">{{ document.client.display_name }}</dd>
             <dt class="col-sm-4">Document Type</dt>
             <dd class="col-sm-8">{{ document.document_type }}</dd>
-            <dt class="col-sm-4">Status</dt>
+            <dt class="col-sm-4">Document Status</dt>
             <dd class="col-sm-8">{{ ui.status_badge(document.status) }}</dd>
             <dt class="col-sm-4">Source</dt>
             <dd class="col-sm-8">{{ document.source }}</dd>
@@ -32,7 +32,7 @@
                 <span class="text-muted">No SharePoint link</span>
               {% endif %}
             </dd>
-            <dt class="col-sm-4">SharePoint Status</dt>
+            <dt class="col-sm-4">SharePoint Upload</dt>
             <dd class="col-sm-8">
               {% if document.sharepoint_upload_status == "mock_uploaded" %}
                 {{ ui.status_badge("mock_uploaded") }}
@@ -62,13 +62,13 @@
     <div class="col-12 col-lg-6">
       <div class="card h-100">
         <div class="card-body">
-          <h2 class="h5">Tax Return Info</h2>
+          <h2 class="h5">Client Work Info</h2>
           <dl class="row mb-0">
             <dt class="col-sm-4">Tax Year</dt>
             <dd class="col-sm-8">{{ document.tax_return.tax_year }}</dd>
-            <dt class="col-sm-4">Return Type</dt>
+            <dt class="col-sm-4">Intake Package</dt>
             <dd class="col-sm-8">{{ document.tax_return.return_type }}</dd>
-            <dt class="col-sm-4">Return Status</dt>
+            <dt class="col-sm-4">Intake Status</dt>
             <dd class="col-sm-8">{{ ui.status_badge(document.tax_return.status) }}</dd>
           </dl>
           <div class="d-flex flex-wrap gap-2 mt-3">
@@ -94,7 +94,7 @@
           <thead>
             <tr>
               <th scope="col">Job Type</th>
-              <th scope="col">Status</th>
+              <th scope="col">Review Status</th>
               <th scope="col">Attempt</th>
               <th scope="col">Started</th>
               <th scope="col">Completed</th>

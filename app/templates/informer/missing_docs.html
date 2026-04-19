@@ -5,7 +5,7 @@
 
 {% block content %}
 {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('informer.overview') }}">Informer Overview</a>{% endset %}
-{{ ui.page_header("Missing Docs", "Returns flagged as waiting on the client or carrying missing-document notes.", actions) }}
+{{ ui.page_header("Missing Docs", "Client work flagged as waiting on the client or carrying missing-document notes.", actions) }}
 
 <div class="table-responsive">
   <table class="table table-striped align-middle">
@@ -13,8 +13,8 @@
       <tr>
         <th scope="col">Client</th>
         <th scope="col">Tax Year</th>
-        <th scope="col">Return Type</th>
-        <th scope="col">Status</th>
+        <th scope="col">Intake Package</th>
+        <th scope="col">Intake Status</th>
         <th scope="col">Missing Docs Notes</th>
         <th scope="col"></th>
       </tr>
@@ -28,12 +28,12 @@
           <td>{{ ui.status_badge(tax_return.status) }}</td>
           <td>{{ tax_return.missing_docs_notes or ("Waiting on client" if tax_return.is_waiting_on_client else "") }}</td>
           <td class="text-end">
-            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.returns_detail', tax_return_id=tax_return.id) }}">Open Return</a>
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('packages.detail', package_id=tax_return.id) }}">Open Client Work</a>
           </td>
         </tr>
       {% else %}
         <tr>
-          <td class="text-muted text-center py-4" colspan="6">No returns are currently missing documents.</td>
+          <td class="text-muted text-center py-4" colspan="6">No client work is currently missing documents.</td>
         </tr>
       {% endfor %}
     </tbody>

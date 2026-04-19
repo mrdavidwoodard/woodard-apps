@@ -13,10 +13,10 @@
       <tr>
         <th scope="col">Client</th>
         <th scope="col">Tax Year</th>
-        <th scope="col">Return Type</th>
+        <th scope="col">Intake Package</th>
         <th scope="col">Document Type</th>
         <th scope="col">File Name</th>
-        <th scope="col">Status</th>
+        <th scope="col">Review Status</th>
         <th scope="col">Confidence</th>
         <th scope="col">Uploaded</th>
         <th scope="col"></th>
@@ -43,7 +43,7 @@
           <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
           <td class="text-end">
             <a class="btn btn-sm btn-outline-primary" href="{{ url_for('documents.detail', document_id=document.id) }}">Document</a>
-            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('returns.returns_detail', tax_return_id=document.tax_return_id) }}">Return</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('packages.detail', package_id=document.tax_return_id) }}">Client Work</a>
           </td>
         </tr>
       {% else %}

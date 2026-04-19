@@ -27,7 +27,7 @@
                 <a class="nav-link {% if request.endpoint and request.endpoint.startswith('ingester.') %}active{% endif %}" href="{{ url_for('ingester.upload') }}">Ingester</a>
               </li>
               <li class="nav-item">
-                <a class="nav-link {% if request.endpoint and request.endpoint.startswith('returns.') %}active{% endif %}" href="{{ url_for('returns.returns_index') }}">Returns</a>
+                <a class="nav-link {% if request.endpoint and (request.endpoint.startswith('returns.') or request.endpoint.startswith('packages.')) %}active{% endif %}" href="{{ url_for('packages.index') }}">Client Work</a>
               </li>
               <li class="nav-item">
                 <a class="nav-link {% if request.endpoint and request.endpoint.startswith('compiler.') %}active{% endif %}" href="{{ url_for('compiler.queue') }}">Compiler</a>

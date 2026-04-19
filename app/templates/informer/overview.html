@@ -5,12 +5,12 @@
 
 {% block content %}
 <div class="d-flex flex-column gap-3">
-  {{ ui.page_header("Informer Overview", "Operational snapshot across clients, returns, documents, and extraction activity.") }}
+  {{ ui.page_header("Informer Overview", "Operational snapshot across client work, intake packages, documents, and extraction activity.") }}
 
   <div class="row g-3">
     {% set cards = [
       ("Clients", counts.clients),
-      ("Tax Returns", counts.tax_returns),
+      ("Client Work", counts.tax_returns),
       ("Documents", counts.documents),
       ("Extraction Jobs", counts.extraction_jobs),
       ("Extraction Results", counts.extraction_results),
@@ -33,7 +33,7 @@
     <div class="col-12 col-lg-6">
       <div class="card h-100">
         <div class="card-body">
-          <h2 class="h5">Tax Returns by Status</h2>
+          <h2 class="h5">Client Work by Intake Status</h2>
           <table class="table table-sm mb-0">
             <tbody>
               {% for status, count in tax_return_status_counts %}
@@ -42,7 +42,7 @@
                   <td class="text-end">{{ count }}</td>
                 </tr>
               {% else %}
-                <tr><td class="text-muted text-center py-3" colspan="2">No tax returns yet.</td></tr>
+                <tr><td class="text-muted text-center py-3" colspan="2">No client work yet.</td></tr>
               {% endfor %}
             </tbody>
           </table>
@@ -52,7 +52,7 @@
     <div class="col-12 col-lg-6">
       <div class="card h-100">
         <div class="card-body">
-          <h2 class="h5">Documents by Status</h2>
+          <h2 class="h5">Documents by Document Status</h2>
           <table class="table table-sm mb-0">
             <tbody>
               {% for status, count in document_status_counts %}
@@ -80,7 +80,7 @@
               <th scope="col">Client</th>
               <th scope="col">Tax Year</th>
               <th scope="col">Document</th>
-              <th scope="col">Status</th>
+              <th scope="col">Document Status</th>
               <th scope="col">Uploaded</th>
               <th scope="col"></th>
             </tr>

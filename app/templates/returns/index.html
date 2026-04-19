@@ -1,10 +1,10 @@
 {% extends "base.html" %}
 {% import "_components.html" as ui %}
 
-{% block title %}Returns | Woodard Apps{% endblock %}
+{% block title %}Client Work | Woodard Apps{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Returns", "Browse tax returns and open return detail pages.") }}
+{{ ui.page_header("Client Work", "Track intake, review, and prep readiness for client tax work.") }}
 
 <div class="table-responsive">
   <table class="table table-striped align-middle">
@@ -12,8 +12,11 @@
       <tr>
         <th scope="col">Client</th>
         <th scope="col">Tax Year</th>
-        <th scope="col">Return Type</th>
-        <th scope="col">Status</th>
+        <th scope="col">Intake Package</th>
+        <th scope="col">Intake Status</th>
+        <th scope="col">Waiting on Client</th>
+        <th scope="col">Ready for Extraction</th>
+        <th scope="col">Extraction Completed</th>
         <th scope="col"></th>
       </tr>
     </thead>
@@ -21,18 +24,21 @@
       {% for item in returns %}
         <tr>
           <td>
-            <a href="{{ url_for('returns.returns_detail', tax_return_id=item.id) }}">{{ item.client.display_name }}</a>
+            <a href="{{ url_for('packages.detail', package_id=item.id) }}">{{ item.client.display_name }}</a>
           </td>
           <td>{{ item.tax_year }}</td>
           <td>{{ item.return_type }}</td>
           <td>{{ ui.status_badge(item.status) }}</td>
+          <td>{{ "Yes" if item.is_waiting_on_client else "No" }}</td>
+          <td>{{ "Yes" if item.is_ready_for_extraction else "No" }}</td>
+          <td>{{ item.extraction_completed_at.strftime("%Y-%m-%d %I:%M %p") if item.extraction_completed_at else "" }}</td>
           <td class="text-end">
-            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.returns_detail', tax_return_id=item.id) }}">View</a>
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('packages.detail', package_id=item.id) }}">View</a>
           </td>
         </tr>
       {% else %}
         <tr>
-          <td class="text-muted text-center py-4" colspan="5">No tax returns have been created yet.</td>
+          <td class="text-muted text-center py-4" colspan="8">No client work has been created yet.</td>
         </tr>
       {% endfor %}
     </tbody>

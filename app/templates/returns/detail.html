@@ -1,12 +1,31 @@
 {% extends "base.html" %}
 {% import "_components.html" as ui %}
 
-{% block title %}Return Detail | Woodard Apps{% endblock %}
+{% block title %}Client Work Detail | Woodard Apps{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-column gap-3">
-  {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('returns.returns_index') }}">Back to Returns</a>{% endset %}
-  {{ ui.page_header(tax_return.client.display_name, tax_return.tax_year ~ " " ~ tax_return.return_type ~ " return", actions) }}
+  {% set actions %}
+    <div class="d-flex flex-wrap gap-2 justify-content-end">
+      {% if tax_return.is_ready_for_extraction %}
+        <form method="post" action="{{ url_for('packages.run_extraction', package_id=tax_return.id) }}">
+          <button class="btn btn-primary" type="submit">Run Extraction</button>
+        </form>
+      {% endif %}
+      <a class="btn btn-outline-secondary" href="{{ url_for('packages.index') }}">Back to Client Work</a>
+    </div>
+  {% endset %}
+  {{ ui.page_header(tax_return.client.display_name, "Track intake, review, and prep readiness for this client work.", actions) }}
+
+  {% if tax_return.is_ready_for_extraction %}
+    <div class="alert alert-success app-alert">
+      Intake package complete. {{ package_stats.received_required }} of {{ package_stats.total_required }} required documents received.
+    </div>
+  {% else %}
+    <div class="alert alert-light border app-alert">
+      Waiting on required documents. {{ package_stats.received_required }} of {{ package_stats.total_required }} required documents received.
+    </div>
+  {% endif %}
 
   <div class="row g-3">
     <div class="col-12 col-lg-6">
@@ -27,16 +46,110 @@
     <div class="col-12 col-lg-6">
       <div class="card h-100">
         <div class="card-body">
-          <h2 class="h5">Tax Return Info</h2>
+          <h2 class="h5">Client Work Info</h2>
           <dl class="row mb-0">
+            <dt class="col-sm-4">Client</dt>
+            <dd class="col-sm-8">{{ tax_return.client.display_name }}</dd>
             <dt class="col-sm-4">Tax Year</dt>
             <dd class="col-sm-8">{{ tax_return.tax_year }}</dd>
-            <dt class="col-sm-4">Return Type</dt>
+            <dt class="col-sm-4">Intake Package</dt>
             <dd class="col-sm-8">{{ tax_return.return_type }}</dd>
-            <dt class="col-sm-4">Status</dt>
+            <dt class="col-sm-4">Intake Status</dt>
             <dd class="col-sm-8">{{ ui.status_badge(tax_return.status) }}</dd>
+            <dt class="col-sm-4">Prep Status</dt>
+            <dd class="col-sm-8">
+              {% if tax_return.status in ["ready_for_prep", "in_prep", "in_review"] %}
+                {{ ui.status_badge(tax_return.status) }}
+              {% else %}
+                <span class="text-muted">Not Started</span>
+              {% endif %}
+            </dd>
+            <dt class="col-sm-4">Ready for Extraction</dt>
+            <dd class="col-sm-8">{{ "Yes" if tax_return.is_ready_for_extraction else "No" }}</dd>
+            <dt class="col-sm-4">Waiting on Client</dt>
+            <dd class="col-sm-8">{{ "Yes" if tax_return.is_waiting_on_client else "No" }}</dd>
+            <dt class="col-sm-4">Extraction Started</dt>
+            <dd class="col-sm-8">{{ tax_return.extraction_started_at.strftime("%Y-%m-%d %I:%M %p") if tax_return.extraction_started_at else "" }}</dd>
+            <dt class="col-sm-4">Extraction Completed</dt>
+            <dd class="col-sm-8">{{ tax_return.extraction_completed_at.strftime("%Y-%m-%d %I:%M %p") if tax_return.extraction_completed_at else "" }}</dd>
           </dl>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      {{ ui.section_title("Intake Package Checklist", "Quick completeness view for intake, review, and prep readiness.") }}
+      <div class="row g-3 mt-1">
+        <div class="col-12 col-md-6 col-xl">
+          <div class="prep-summary-item h-100">
+            <div class="summary-label">Required Documents</div>
+            <div class="summary-value">{{ package_stats.total_required }}</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl">
+          <div class="prep-summary-item h-100">
+            <div class="summary-label">Received Required</div>
+            <div class="summary-value">{{ package_stats.received_required }}</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl">
+          <div class="prep-summary-item h-100">
+            <div class="summary-label">Missing Required</div>
+            <div class="summary-value">{{ package_stats.missing_required }}</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl">
+          <div class="prep-summary-item h-100">
+            <div class="summary-label">Package Documents</div>
+            <div class="summary-value">{{ package_stats.total }}</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl">
+          <div class="prep-summary-item h-100">
+            <div class="summary-label">Review Pending</div>
+            <div class="summary-value">{{ package_stats.review_pending }}</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl">
+          <div class="prep-summary-item h-100">
+            <div class="summary-label">Exceptions</div>
+            <div class="summary-value">{{ package_stats.exceptions }}</div>
+          </div>
+        </div>
+      </div>
+      <div class="table-responsive mt-3">
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Requirement</th>
+              <th scope="col">Required</th>
+              <th scope="col">Received</th>
+              <th scope="col">Matched Document</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for requirement in requirements %}
+              <tr>
+                <td>{{ requirement.display_name }}</td>
+                <td>{{ "Yes" if requirement.is_required else "No" }}</td>
+                <td>{{ "Yes" if requirement.is_received else "No" }}</td>
+                <td>
+                  {% if requirement.document %}
+                    <a href="{{ url_for('documents.detail', document_id=requirement.document.id) }}">{{ requirement.document.original_file_name or requirement.document.file_name }}</a>
+                  {% else %}
+                    <span class="text-muted">Not received</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td class="text-muted text-center py-4" colspan="4">No document requirements have been created yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -50,7 +163,7 @@
             <tr>
               <th scope="col">Document Type</th>
               <th scope="col">File Name</th>
-              <th scope="col">Status</th>
+              <th scope="col">Document Status</th>
               <th scope="col">SharePoint</th>
               <th scope="col">Uploaded</th>
               <th scope="col">Extraction</th>
@@ -97,7 +210,7 @@
               </tr>
             {% else %}
               <tr>
-                <td class="text-muted text-center py-4" colspan="7">No documents have been uploaded for this return.</td>
+                <td class="text-muted text-center py-4" colspan="7">No documents have been uploaded for this client work.</td>
               </tr>
             {% endfor %}
           </tbody>

@@ -4,7 +4,7 @@
 {% block title %}Prep Queue | Woodard Apps{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Prep Queue", "Returns approved by review and ready for Lacerte preparation.") }}
+{{ ui.page_header("Prep Queue", "Approved client work ready to support Lacerte preparation.") }}
 
 <div class="table-responsive">
   <table class="table table-striped align-middle">
@@ -12,7 +12,7 @@
       <tr>
         <th scope="col">Client</th>
         <th scope="col">Tax Year</th>
-        <th scope="col">Return Type</th>
+        <th scope="col">Intake Package</th>
         <th scope="col">Assigned User</th>
         <th scope="col">Due Date</th>
         <th scope="col">Approved Docs</th>
@@ -35,7 +35,7 @@
         </tr>
       {% else %}
         <tr>
-          <td class="text-muted text-center py-4" colspan="7">No returns are ready for prep.</td>
+          <td class="text-muted text-center py-4" colspan="7">No client work is ready for prep.</td>
         </tr>
       {% endfor %}
     </tbody>

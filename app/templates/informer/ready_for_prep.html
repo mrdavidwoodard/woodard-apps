@@ -5,7 +5,7 @@
 
 {% block content %}
 {% set actions %}<a class="btn btn-outline-secondary" href="{{ url_for('informer.overview') }}">Informer Overview</a>{% endset %}
-{{ ui.page_header("Ready for Prep", "Returns where all uploaded documents are approved and the client is not blocking progress.", actions) }}
+{{ ui.page_header("Ready for Prep", "Client work where all uploaded documents are approved and the client is not blocking progress.", actions) }}
 
 <div class="table-responsive">
   <table class="table table-striped align-middle">
@@ -13,8 +13,8 @@
       <tr>
         <th scope="col">Client</th>
         <th scope="col">Tax Year</th>
-        <th scope="col">Return Type</th>
-        <th scope="col">Status</th>
+        <th scope="col">Intake Package</th>
+        <th scope="col">Prep Status</th>
         <th scope="col">Documents</th>
         <th scope="col"></th>
       </tr>
@@ -29,12 +29,12 @@
           <td>{{ ui.status_badge(tax_return.status) }}</td>
           <td>{{ row.document_count }}</td>
           <td class="text-end">
-            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('returns.returns_detail', tax_return_id=tax_return.id) }}">Open Return</a>
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('packages.detail', package_id=tax_return.id) }}">Open Client Work</a>
           </td>
         </tr>
       {% else %}
         <tr>
-          <td class="text-muted text-center py-4" colspan="6">No returns are ready for prep.</td>
+          <td class="text-muted text-center py-4" colspan="6">No client work is ready for prep.</td>
         </tr>
       {% endfor %}
     </tbody>
