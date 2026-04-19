@@ -227,12 +227,32 @@ class Document(db.Model):
         return f"<Document {self.file_name}>"
 
 
+class OrganizerSection(db.Model):
+    __tablename__ = "organizer_sections"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False, unique=True)
+    description = db.Column(db.Text, nullable=True)
+    display_order = db.Column(db.Integer, nullable=False, default=0)
+
+    package_document_requirements = db.relationship(
+        "PackageDocumentRequirement",
+        back_populates="section",
+        lazy="dynamic",
+    )
+
+    def __repr__(self):
+        return f"<OrganizerSection {self.name}>"
+
+
 class PackageDocumentRequirement(db.Model):
     __tablename__ = "package_document_requirements"
 
     id = db.Column(db.Integer, primary_key=True)
     tax_return_id = db.Column(db.Integer, db.ForeignKey("tax_returns.id"), nullable=False, index=True)
     document_id = db.Column(db.Integer, db.ForeignKey("documents.id"), nullable=True, index=True)
+    section_id = db.Column(db.Integer, db.ForeignKey("organizer_sections.id"), nullable=True, index=True)
+    name = db.Column(db.String(120), nullable=True)
     document_type = db.Column(db.String(80), nullable=False)
     display_name = db.Column(db.String(120), nullable=False)
     is_required = db.Column(db.Boolean, nullable=False, default=True)
@@ -244,6 +264,7 @@ class PackageDocumentRequirement(db.Model):
 
     tax_return = db.relationship("TaxReturn", back_populates="package_document_requirements")
     document = db.relationship("Document", back_populates="package_requirements")
+    section = db.relationship("OrganizerSection", back_populates="package_document_requirements")
 
     def __repr__(self):
         return f"<PackageDocumentRequirement tax_return_id={self.tax_return_id} document_type={self.document_type}>"

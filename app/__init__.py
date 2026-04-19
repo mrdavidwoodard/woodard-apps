@@ -67,6 +67,10 @@ def create_app(config_name=None):
     if app.config.get("AUTO_CREATE_DATABASE") and not _running_flask_db_command():
         with app.app_context():
             db.create_all()
+            from app.services.package_readiness import seed_default_organizer_sections
+
+            seed_default_organizer_sections()
+            db.session.commit()
             if app.config.get("CREATE_DEFAULT_USER"):
                 seed_default_user()
 

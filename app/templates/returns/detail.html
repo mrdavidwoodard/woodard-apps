@@ -22,11 +22,26 @@
 
   {% if tax_return.is_ready_for_extraction %}
     <div class="alert alert-success app-alert">
-      Intake package complete. {{ package_stats.received_required }} of {{ package_stats.total_required }} required documents received.
+      <strong>Package Status: Ready for Extraction.</strong>
+      {{ package_stats.received_required }} of {{ package_stats.total_required }} required documents received.
     </div>
   {% else %}
     <div class="alert alert-light border app-alert">
-      Waiting on required documents. {{ package_stats.received_required }} of {{ package_stats.total_required }} required documents received.
+      <strong>Package Status: Waiting on Documents.</strong>
+      {{ package_stats.received_required }} of {{ package_stats.total_required }} required documents received.
+    </div>
+  {% endif %}
+
+  {% if package_stats.missing_items %}
+    <div class="card">
+      <div class="card-body">
+        {{ ui.section_title("Missing Items") }}
+        <ul class="mb-0 mt-3">
+          {% for item in package_stats.missing_items %}
+            <li>{{ item.name }} <span class="text-muted">({{ item.section }})</span></li>
+          {% endfor %}
+        </ul>
+      </div>
     </div>
   {% endif %}
 
@@ -122,37 +137,60 @@
           </div>
         </div>
       </div>
-      <div class="table-responsive mt-3">
-        <table class="table table-striped align-middle mb-0">
-          <thead>
-            <tr>
-              <th scope="col">Requirement</th>
-              <th scope="col">Required</th>
-              <th scope="col">Received</th>
-              <th scope="col">Matched Document</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for requirement in requirements %}
-              <tr>
-                <td>{{ requirement.display_name }}</td>
-                <td>{{ "Yes" if requirement.is_required else "No" }}</td>
-                <td>{{ "Yes" if requirement.is_received else "No" }}</td>
-                <td>
-                  {% if requirement.document %}
-                    <a href="{{ url_for('documents.detail', document_id=requirement.document.id) }}">{{ requirement.document.original_file_name or requirement.document.file_name }}</a>
-                  {% else %}
-                    <span class="text-muted">Not received</span>
+      <div class="d-flex flex-column gap-3 mt-3">
+        {% for section_summary in package_stats.section_summaries %}
+          {% if section_summary.requirements %}
+            <div class="prep-summary-item">
+              <div class="d-flex flex-wrap justify-content-between gap-2">
+                <div>
+                  <h3 class="h6 mb-1">{{ section_summary.section.name }}</h3>
+                  {% if section_summary.section.description %}
+                    <p class="text-muted mb-0">{{ section_summary.section.description }}</p>
                   {% endif %}
-                </td>
-              </tr>
-            {% else %}
-              <tr>
-                <td class="text-muted text-center py-4" colspan="4">No document requirements have been created yet.</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
+                </div>
+                <div>
+                  {% if section_summary.status == "complete" %}
+                    <span class="badge status-badge status-approved">Complete</span>
+                  {% elif section_summary.status == "in_progress" %}
+                    <span class="badge status-badge status-in_prep">In Progress</span>
+                  {% else %}
+                    <span class="badge status-badge status-new">Not Started</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div class="table-responsive mt-3">
+                <table class="table table-striped align-middle mb-0">
+                  <thead>
+                    <tr>
+                      <th scope="col">Requirement</th>
+                      <th scope="col">Required</th>
+                      <th scope="col">Received</th>
+                      <th scope="col">Matched Document</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {% for requirement in section_summary.requirements %}
+                      <tr>
+                        <td>{{ requirement.name or requirement.display_name }}</td>
+                        <td>{{ "Yes" if requirement.is_required else "No" }}</td>
+                        <td>{{ "Yes" if requirement.is_received else "No" }}</td>
+                        <td>
+                          {% if requirement.document %}
+                            <a href="{{ url_for('documents.detail', document_id=requirement.document.id) }}">{{ requirement.document.original_file_name or requirement.document.file_name }}</a>
+                          {% else %}
+                            <span class="text-muted">Missing</span>
+                          {% endif %}
+                        </td>
+                      </tr>
+                    {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          {% endif %}
+        {% else %}
+          <p class="text-muted mb-0">No document requirements have been created yet.</p>
+        {% endfor %}
       </div>
     </div>
   </div>
