@@ -1,10 +1,10 @@
 from pathlib import Path
 
 from flask import Blueprint, abort, current_app, flash, redirect, render_template, send_from_directory, url_for
-from flask_login import login_required
+from flask_login import current_user, login_required
 
 from app import db
-from app.models import Document, ExtractionJob, ExtractionResult, utc_now
+from app.models import Document, ExtractionJob, ExtractionResult, ReviewAction, utc_now
 
 documents_bp = Blueprint("documents", __name__)
 
@@ -59,11 +59,13 @@ def detail(document_id):
     document = Document.query.get_or_404(document_id)
     extraction_jobs = document.extraction_jobs.order_by(ExtractionJob.created_at.desc()).all()
     latest_result = document.extraction_results.order_by(ExtractionResult.created_at.desc()).first()
+    review_actions = document.review_actions.order_by(ReviewAction.reviewed_at.desc()).all()
     return render_template(
         "documents/detail.html",
         document=document,
         extraction_jobs=extraction_jobs,
         latest_result=latest_result,
+        review_actions=review_actions,
     )
 
 
@@ -121,6 +123,36 @@ def extract(document_id):
         current_app.logger.exception("Mock extraction failed for document_id=%s", document.id)
         flash("Mock extraction failed. Please try again.", "danger")
 
+    return redirect(url_for("documents.detail", document_id=document.id))
+
+
+def all_documents_approved(tax_return):
+    documents = tax_return.documents.all()
+    return bool(documents) and all(document.status == "approved" for document in documents)
+
+
+@documents_bp.route("/documents/<int:document_id>/approve", methods=["POST"])
+@login_required
+def approve(document_id):
+    document = Document.query.get_or_404(document_id)
+    latest_result = document.extraction_results.order_by(ExtractionResult.created_at.desc()).first()
+
+    review_action = ReviewAction(
+        tax_return=document.tax_return,
+        document=document,
+        extraction_result=latest_result,
+        reviewed_by_user=current_user,
+        action_type="approved",
+    )
+    document.status = "approved"
+
+    if all_documents_approved(document.tax_return) and not document.tax_return.is_waiting_on_client:
+        document.tax_return.status = "ready_for_prep"
+
+    db.session.add(review_action)
+    db.session.commit()
+
+    flash("Document approved.", "success")
     return redirect(url_for("documents.detail", document_id=document.id))
 
 

@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+
+{% block title %}Informer Overview | Woodard Apps{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column gap-3">
+  <div>
+    <h1 class="h3 mb-1">Informer Overview</h1>
+    <p class="text-muted mb-0">Operational snapshot across clients, returns, documents, and extraction activity.</p>
+  </div>
+
+  <div class="row g-3">
+    {% set cards = [
+      ("Clients", counts.clients),
+      ("Tax Returns", counts.tax_returns),
+      ("Documents", counts.documents),
+      ("Extraction Jobs", counts.extraction_jobs),
+      ("Extraction Results", counts.extraction_results),
+      ("Pending Review", counts.documents_pending_review),
+      ("Waiting on Client", counts.returns_waiting_on_client)
+    ] %}
+    {% for label, value in cards %}
+      <div class="col-12 col-md-6 col-lg-3">
+        <div class="card h-100">
+          <div class="card-body">
+            <div class="text-muted small">{{ label }}</div>
+            <div class="display-6">{{ value }}</div>
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Tax Returns by Status</h2>
+          <table class="table table-sm mb-0">
+            <tbody>
+              {% for status, count in tax_return_status_counts %}
+                <tr>
+                  <td>{{ status }}</td>
+                  <td class="text-end">{{ count }}</td>
+                </tr>
+              {% else %}
+                <tr><td class="text-muted text-center py-3" colspan="2">No tax returns yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Documents by Status</h2>
+          <table class="table table-sm mb-0">
+            <tbody>
+              {% for status, count in document_status_counts %}
+                <tr>
+                  <td>{{ status }}</td>
+                  <td class="text-end">{{ count }}</td>
+                </tr>
+              {% else %}
+                <tr><td class="text-muted text-center py-3" colspan="2">No documents yet.</td></tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5">Latest Uploaded Documents</h2>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Client</th>
+              <th scope="col">Tax Year</th>
+              <th scope="col">Document</th>
+              <th scope="col">Status</th>
+              <th scope="col">Uploaded</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for document in latest_documents %}
+              <tr>
+                <td>{{ document.client.display_name }}</td>
+                <td>{{ document.tax_return.tax_year }}</td>
+                <td>{{ document.original_file_name or document.file_name }}</td>
+                <td>{{ document.status }}</td>
+                <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('documents.detail', document_id=document.id) }}">Open</a>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td class="text-muted text-center py-4" colspan="6">No uploaded documents yet.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

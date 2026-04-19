@@ -26,6 +26,20 @@
               <li class="nav-item">
                 <a class="nav-link" href="{{ url_for('returns.returns_index') }}">Returns</a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('compiler.queue') }}">Compiler</a>
+              </li>
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                  Informer
+                </a>
+                <ul class="dropdown-menu">
+                  <li><a class="dropdown-item" href="{{ url_for('informer.overview') }}">Overview</a></li>
+                  <li><a class="dropdown-item" href="{{ url_for('informer.review_pending') }}">Review Pending</a></li>
+                  <li><a class="dropdown-item" href="{{ url_for('informer.ready_for_prep') }}">Ready for Prep</a></li>
+                  <li><a class="dropdown-item" href="{{ url_for('informer.missing_docs') }}">Missing Docs</a></li>
+                </ul>
+              </li>
             </ul>
             <div class="d-flex align-items-center gap-3">
               <span class="navbar-text small">{{ current_user.full_name }}</span>

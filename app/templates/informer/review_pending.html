@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+
+{% block title %}Review Pending | Woodard Apps{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Review Pending</h1>
+    <p class="text-muted mb-0">Documents with extraction output or intake data ready for staff review.</p>
+  </div>
+  <a class="btn btn-outline-secondary" href="{{ url_for('informer.overview') }}">Informer Overview</a>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th scope="col">Client</th>
+        <th scope="col">Tax Year</th>
+        <th scope="col">Return Type</th>
+        <th scope="col">Document Type</th>
+        <th scope="col">File Name</th>
+        <th scope="col">Status</th>
+        <th scope="col">Confidence</th>
+        <th scope="col">Uploaded</th>
+        <th scope="col"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        {% set document = row.document %}
+        {% set latest_result = row.latest_result %}
+        <tr>
+          <td>{{ document.client.display_name }}</td>
+          <td>{{ document.tax_return.tax_year }}</td>
+          <td>{{ document.tax_return.return_type }}</td>
+          <td>{{ document.document_type }}</td>
+          <td>{{ document.original_file_name or document.file_name }}</td>
+          <td>{{ document.status }}</td>
+          <td>
+            {% if latest_result and latest_result.confidence_score is not none %}
+              {{ "%.0f"|format(latest_result.confidence_score * 100) }}%
+            {% else %}
+              <span class="text-muted">None</span>
+            {% endif %}
+          </td>
+          <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('documents.detail', document_id=document.id) }}">Document</a>
+            <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('returns.returns_detail', tax_return_id=document.tax_return_id) }}">Return</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td class="text-muted text-center py-4" colspan="9">No documents are pending review.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

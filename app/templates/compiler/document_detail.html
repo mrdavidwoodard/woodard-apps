@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+
+{% block title %}Compiler Review | Woodard Apps{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column gap-3">
+  <div class="d-flex justify-content-between align-items-start gap-3">
+    <div>
+      <h1 class="h3 mb-1">{{ document.original_file_name or document.file_name }}</h1>
+      <p class="text-muted mb-0">{{ document.client.display_name }} · {{ document.tax_return.tax_year }} {{ document.tax_return.return_type }}</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('compiler.queue') }}">Back to Queue</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Client</h2>
+          <dl class="mb-0">
+            <dt>Name</dt>
+            <dd>{{ document.client.display_name }}</dd>
+            <dt>Type</dt>
+            <dd>{{ document.client.client_type }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Tax Return</h2>
+          <dl class="mb-0">
+            <dt>Tax Year</dt>
+            <dd>{{ document.tax_return.tax_year }}</dd>
+            <dt>Return Type</dt>
+            <dd>{{ document.tax_return.return_type }}</dd>
+            <dt>Status</dt>
+            <dd>{{ document.tax_return.status }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Document</h2>
+          <dl class="mb-0">
+            <dt>Type</dt>
+            <dd>{{ document.document_type }}</dd>
+            <dt>Status</dt>
+            <dd>{{ document.status }}</dd>
+            <dt>File</dt>
+            <dd>
+              {% if document.stored_file_path %}
+                <a href="{{ url_for('documents.file', document_id=document.id) }}" target="_blank" rel="noopener">{{ document.file_name }}</a>
+              {% else %}
+                <span class="text-muted">No local file available</span>
+              {% endif %}
+            </dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-xl-8">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Extracted Data</h2>
+          {% if latest_result %}
+            <div class="text-muted small mb-2">
+              Model: {{ latest_result.model_name or "unknown" }} · Confidence:
+              {{ "%.0f"|format((latest_result.confidence_score or 0) * 100) }}%
+            </div>
+            <form method="post" action="{{ url_for('compiler.correct', document_id=document.id) }}">
+              <textarea class="form-control font-monospace" name="extracted_json" rows="18" required>{{ extracted_json_text }}</textarea>
+              <button class="btn btn-success mt-3" type="submit">Correct and Approve</button>
+            </form>
+          {% else %}
+            <p class="text-muted mb-0">No extraction result exists yet. Send this document to Extractor first.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-xl-4">
+      <div class="card mb-3">
+        <div class="card-body">
+          <h2 class="h5">Actions</h2>
+          <form method="post" action="{{ url_for('compiler.approve', document_id=document.id) }}">
+            <button class="btn btn-success w-100" type="submit">Approve</button>
+          </form>
+          <hr>
+          <form method="post" action="{{ url_for('compiler.escalate', document_id=document.id) }}">
+            <label class="form-label" for="notes">Escalation notes</label>
+            <textarea class="form-control" id="notes" name="notes" rows="4" required></textarea>
+            <button class="btn btn-warning w-100 mt-3" type="submit">Escalate</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <h2 class="h5">Validation Messages</h2>
+          {% if latest_result and latest_result.validation_messages_json %}
+            <ul class="mb-0">
+              {% for message in latest_result.validation_messages_json %}
+                <li>{{ message }}</li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted mb-0">No validation messages.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5">Review History</h2>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Action</th>
+              <th scope="col">Reviewer</th>
+              <th scope="col">Reviewed</th>
+              <th scope="col">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for action in review_actions %}
+              <tr>
+                <td>{{ action.action_type }}</td>
+                <td>{{ action.reviewed_by_user.full_name }}</td>
+                <td>{{ action.reviewed_at.strftime("%Y-%m-%d %I:%M %p") if action.reviewed_at else "" }}</td>
+                <td>{{ action.notes or "" }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td class="text-muted text-center py-4" colspan="4">No review actions have been recorded.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

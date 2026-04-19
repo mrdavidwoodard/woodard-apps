@@ -47,6 +47,12 @@ class User(UserMixin, db.Model):
         back_populates="uploaded_by_user",
         lazy="dynamic",
     )
+    review_actions = db.relationship(
+        "ReviewAction",
+        foreign_keys="ReviewAction.reviewed_by_user_id",
+        back_populates="reviewed_by_user",
+        lazy="dynamic",
+    )
 
     @property
     def full_name(self):
@@ -98,6 +104,8 @@ class TaxReturn(db.Model):
     tax_year = db.Column(db.Integer, nullable=False)
     return_type = db.Column(db.String(80), nullable=False)
     status = db.Column(db.String(50), nullable=False, default="new")
+    is_waiting_on_client = db.Column(db.Boolean, nullable=False, default=False)
+    missing_docs_notes = db.Column(db.Text, nullable=True)
     assigned_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     reviewer_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     due_date = db.Column(db.Date, nullable=True)
@@ -120,6 +128,12 @@ class TaxReturn(db.Model):
     )
     extraction_results = db.relationship(
         "ExtractionResult",
+        back_populates="tax_return",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
+    review_actions = db.relationship(
+        "ReviewAction",
         back_populates="tax_return",
         cascade="all, delete-orphan",
         lazy="dynamic",
@@ -179,6 +193,12 @@ class Document(db.Model):
         cascade="all, delete-orphan",
         lazy="dynamic",
     )
+    review_actions = db.relationship(
+        "ReviewAction",
+        back_populates="document",
+        cascade="all, delete-orphan",
+        lazy="dynamic",
+    )
 
     def __repr__(self):
         return f"<Document {self.file_name}>"
@@ -233,9 +253,40 @@ class ExtractionResult(db.Model):
     extraction_job = db.relationship("ExtractionJob", back_populates="extraction_results")
     document = db.relationship("Document", back_populates="extraction_results")
     tax_return = db.relationship("TaxReturn", back_populates="extraction_results")
+    review_actions = db.relationship(
+        "ReviewAction",
+        back_populates="extraction_result",
+        lazy="dynamic",
+    )
 
     def __repr__(self):
         return f"<ExtractionResult document_id={self.document_id} confidence={self.confidence_score}>"
+
+
+class ReviewAction(db.Model):
+    __tablename__ = "review_actions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    tax_return_id = db.Column(db.Integer, db.ForeignKey("tax_returns.id"), nullable=False, index=True)
+    document_id = db.Column(db.Integer, db.ForeignKey("documents.id"), nullable=False, index=True)
+    extraction_result_id = db.Column(db.Integer, db.ForeignKey("extraction_results.id"), nullable=True, index=True)
+    reviewed_by_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False, index=True)
+    action_type = db.Column(db.String(50), nullable=False)
+    notes = db.Column(db.Text, nullable=True)
+    field_changes_json = db.Column(db.JSON, nullable=True)
+    reviewed_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
+
+    tax_return = db.relationship("TaxReturn", back_populates="review_actions")
+    document = db.relationship("Document", back_populates="review_actions")
+    extraction_result = db.relationship("ExtractionResult", back_populates="review_actions")
+    reviewed_by_user = db.relationship(
+        "User",
+        foreign_keys=[reviewed_by_user_id],
+        back_populates="review_actions",
+    )
+
+    def __repr__(self):
+        return f"<ReviewAction document_id={self.document_id} action_type={self.action_type}>"
 
 
 def seed_default_user():

@@ -53,9 +53,16 @@
             <dt class="col-sm-4">Return Status</dt>
             <dd class="col-sm-8">{{ document.tax_return.status }}</dd>
           </dl>
-          <form class="mt-3" method="post" action="{{ url_for('documents.extract', document_id=document.id) }}">
-            <button class="btn btn-primary" type="submit">Send to Extractor</button>
-          </form>
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <form method="post" action="{{ url_for('documents.extract', document_id=document.id) }}">
+              <button class="btn btn-primary" type="submit">Send to Extractor</button>
+            </form>
+            {% if document.status == "review_pending" %}
+              <form method="post" action="{{ url_for('documents.approve', document_id=document.id) }}">
+                <button class="btn btn-success" type="submit">Approve Document</button>
+              </form>
+            {% endif %}
+          </div>
         </div>
       </div>
     </div>
@@ -113,6 +120,46 @@
       {% else %}
         <p class="text-muted mb-0">No extraction result exists yet.</p>
       {% endif %}
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5">Review History</h2>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Action</th>
+              <th scope="col">Reviewer</th>
+              <th scope="col">Reviewed</th>
+              <th scope="col">Extraction Result</th>
+              <th scope="col">Notes</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for action in review_actions %}
+              <tr>
+                <td>{{ action.action_type }}</td>
+                <td>{{ action.reviewed_by_user.full_name }}</td>
+                <td>{{ action.reviewed_at.strftime("%Y-%m-%d %I:%M %p") if action.reviewed_at else "" }}</td>
+                <td>
+                  {% if action.extraction_result_id %}
+                    #{{ action.extraction_result_id }}
+                  {% else %}
+                    <span class="text-muted">None</span>
+                  {% endif %}
+                </td>
+                <td>{{ action.notes or "" }}</td>
+              </tr>
+            {% else %}
+              <tr>
+                <td class="text-muted text-center py-4" colspan="5">No review actions have been recorded.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
 </div>
