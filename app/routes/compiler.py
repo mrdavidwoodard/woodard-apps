@@ -5,7 +5,8 @@ from flask import Blueprint, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 
 from app import db
-from app.models import Document, ExtractionResult, ReviewAction
+from app.models import Document, ExtractionResult, ReviewAction, TaxReturn, utc_now
+from app.services.package_readiness import package_document_stats
 
 compiler_bp = Blueprint("compiler", __name__, url_prefix="/compiler")
 
@@ -29,6 +30,29 @@ STRUCTURED_FIELD_SETS = {
     ],
 }
 
+PACKAGE_REVIEW_CATEGORIES = {
+    "organizer": "Organizer",
+    "w2": "Wages and Withholding",
+    "1099_int": "Interest Income",
+    "1099": "Other Documents",
+    "1099_div": "Dividend Income",
+    "schedule_c": "Business / Self-Employment",
+    "k1": "K-1 / Pass-Through",
+    "1098": "Deductions / Mortgage / Prior Year",
+    "prior_year": "Deductions / Mortgage / Prior Year",
+}
+
+PACKAGE_REVIEW_SECTION_ORDER = [
+    "Organizer",
+    "Wages and Withholding",
+    "Interest Income",
+    "Dividend Income",
+    "Business / Self-Employment",
+    "K-1 / Pass-Through",
+    "Deductions / Mortgage / Prior Year",
+    "Other Documents",
+]
+
 
 def latest_result_for(document):
     return document.extraction_results.order_by(ExtractionResult.created_at.desc()).first()
@@ -49,6 +73,10 @@ def normalized_document_type(document, latest_result=None):
 
 def structured_fields_for(document, latest_result=None):
     return STRUCTURED_FIELD_SETS.get(normalized_document_type(document, latest_result), [])
+
+
+def readable_field_label(field_name):
+    return (field_name or "").replace("_", " ").title()
 
 
 def extracted_fields_payload(latest_result):
@@ -116,6 +144,89 @@ def confidence_summary(latest_result, field_defs):
     return summary
 
 
+def category_for_document(document, latest_result=None):
+    document_type = normalized_document_type(document, latest_result)
+    return PACKAGE_REVIEW_CATEGORIES.get(document_type, "Other Documents")
+
+
+def extracted_rows_for(document, latest_result):
+    if not latest_result or not isinstance(latest_result.extracted_json, dict):
+        return []
+
+    fields = extracted_fields_payload(latest_result)
+    if fields:
+        rows = []
+        for field_name, payload in fields.items():
+            if isinstance(payload, dict):
+                value = payload.get("value")
+                confidence = payload.get("confidence")
+            else:
+                value = payload
+                confidence = None
+            rows.append(
+                {
+                    "label": readable_field_label(field_name),
+                    "value": value,
+                    "confidence": confidence if isinstance(confidence, (int, float)) else None,
+                }
+            )
+        return rows
+
+    rows = []
+    for field_name, value in latest_result.extracted_json.items():
+        if isinstance(value, (dict, list)):
+            rows.append({"label": readable_field_label(field_name), "json_text": json.dumps(value, indent=2, sort_keys=True)})
+        else:
+            rows.append({"label": readable_field_label(field_name), "value": value, "confidence": None})
+    return rows
+
+
+def grouped_extracted_data_for(package):
+    grouped = {section: [] for section in PACKAGE_REVIEW_SECTION_ORDER}
+    for document in package.documents.order_by(Document.uploaded_at.asc()).all():
+        latest_result = latest_result_for(document)
+        if not latest_result:
+            continue
+        category = category_for_document(document, latest_result)
+        grouped.setdefault(category, [])
+        grouped[category].append(
+            {
+                "document": document,
+                "latest_result": latest_result,
+                "rows": extracted_rows_for(document, latest_result),
+                "json_text": json.dumps(latest_result.extracted_json or {}, indent=2, sort_keys=True),
+            }
+        )
+    return [(section, grouped.get(section, [])) for section in PACKAGE_REVIEW_SECTION_ORDER if grouped.get(section)]
+
+
+def package_review_issues_for(package):
+    issues = []
+    for document in package.documents.order_by(Document.uploaded_at.asc()).all():
+        latest_result = latest_result_for(document)
+        if document.status == "exception":
+            issues.append({"document": document, "summary": "Document is in exception status."})
+        if not latest_result:
+            issues.append({"document": document, "summary": "No extraction result is available."})
+            continue
+        for field_name, payload in extracted_fields_payload(latest_result).items():
+            if isinstance(payload, dict) and confidence_level(payload.get("confidence")) == "low":
+                issues.append(
+                    {
+                        "document": document,
+                        "summary": f"Low confidence field: {readable_field_label(field_name)}.",
+                    }
+                )
+    return issues
+
+
+def can_approve_package(package):
+    documents = package.documents.all()
+    has_extracted_document = any(document.extraction_results.count() for document in documents)
+    has_exception = any(document.status == "exception" for document in documents)
+    return has_extracted_document and not has_exception
+
+
 def has_saved_corrections(document):
     return document.review_actions.filter(ReviewAction.action_type == "corrected").count() > 0
 
@@ -172,6 +283,40 @@ def queue():
     documents = Document.query.filter_by(status="review_pending").order_by(Document.uploaded_at.desc()).all()
     rows = [{"document": document, "latest_result": latest_result_for(document)} for document in documents]
     return render_template("compiler/queue.html", rows=rows)
+
+
+@compiler_bp.route("/package/<int:package_id>")
+@login_required
+def package_review(package_id):
+    package = TaxReturn.query.get_or_404(package_id)
+    stats = package_document_stats(package)
+    issues = package_review_issues_for(package)
+    return render_template(
+        "compiler/package_review.html",
+        package=package,
+        package_stats=stats,
+        grouped_data=grouped_extracted_data_for(package),
+        issues=issues,
+        can_approve=can_approve_package(package),
+        confidence_badge_class=confidence_badge_class,
+        confidence_badge_label=confidence_badge_label,
+    )
+
+
+@compiler_bp.route("/package/<int:package_id>/approve", methods=["POST"])
+@login_required
+def approve_package(package_id):
+    package = TaxReturn.query.get_or_404(package_id)
+    if not can_approve_package(package):
+        flash("Package cannot be approved while exceptions exist or no extracted documents are available.", "danger")
+        return redirect(url_for("compiler.package_review", package_id=package.id))
+
+    package.status = "ready_for_prep"
+    package.review_completed_at = utc_now()
+    db.session.commit()
+
+    flash("Package approved for prep.", "success")
+    return redirect(url_for("compiler.package_review", package_id=package.id))
 
 
 @compiler_bp.route("/document/<int:document_id>")

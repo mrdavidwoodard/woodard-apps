@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+{% import "_components.html" as ui %}
+
+{% block title %}Package Review | Woodard Apps{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column gap-3">
+  {% set actions %}
+    <div class="d-flex flex-wrap gap-2 justify-content-end">
+      {% if can_approve %}
+        <form method="post" action="{{ url_for('compiler.approve_package', package_id=package.id) }}">
+          <button class="btn btn-success" type="submit">Approve Package for Prep</button>
+        </form>
+      {% endif %}
+      <a class="btn btn-outline-secondary" href="{{ url_for('packages.detail', package_id=package.id) }}">Back to Intake Package</a>
+    </div>
+  {% endset %}
+  {{ ui.page_header("Package Review", package.client.display_name ~ " · " ~ package.tax_year ~ " · " ~ package.return_type, actions) }}
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          {{ ui.section_title("Package Summary") }}
+          <dl class="row mb-0 mt-3">
+            <dt class="col-sm-5">Client</dt>
+            <dd class="col-sm-7">{{ package.client.display_name }}</dd>
+            <dt class="col-sm-5">Tax Year</dt>
+            <dd class="col-sm-7">{{ package.tax_year }}</dd>
+            <dt class="col-sm-5">Intake Status</dt>
+            <dd class="col-sm-7">{{ ui.status_badge(package.status) }}</dd>
+            <dt class="col-sm-5">Prep Status</dt>
+            <dd class="col-sm-7">
+              {% if package.status in ["ready_for_prep", "in_prep", "in_review"] %}
+                {{ ui.status_badge(package.status) }}
+              {% else %}
+                <span class="text-muted">Not Started</span>
+              {% endif %}
+            </dd>
+            <dt class="col-sm-5">Package Review Status</dt>
+            <dd class="col-sm-7">{{ "Completed" if package.review_completed_at else "Pending" }}</dd>
+            <dt class="col-sm-5">Review Completed</dt>
+            <dd class="col-sm-7">{{ package.review_completed_at.strftime("%Y-%m-%d %I:%M %p") if package.review_completed_at else "" }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <div class="row g-3">
+        <div class="col-6">{{ ui.summary_card("Documents", package_stats.total) }}</div>
+        <div class="col-6">{{ ui.summary_card("Extracted", package_stats.extracted) }}</div>
+        <div class="col-6">{{ ui.summary_card("Exceptions", package_stats.exceptions) }}</div>
+        <div class="col-6">{{ ui.summary_card("Review Pending", package_stats.review_pending) }}</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      {{ ui.section_title("Needs Attention", "Exceptions, missing extraction results, and low-confidence extracted fields.") }}
+      <div class="table-responsive mt-3">
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Document</th>
+              <th scope="col">Type</th>
+              <th scope="col">Issue</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for issue in issues %}
+              <tr>
+                <td>{{ issue.document.original_file_name or issue.document.file_name }}</td>
+                <td>{{ issue.document.document_type }}</td>
+                <td>{{ issue.summary }}</td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('documents.detail', document_id=issue.document.id) }}">Document</a>
+                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('compiler.document_detail', document_id=issue.document.id) }}">Review</a>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td class="text-muted text-center py-4" colspan="4">No package review issues found.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      {{ ui.section_title("Grouped Extracted Data", "Package-level view grouped by intake category with source traceability.") }}
+      <div class="d-flex flex-column gap-3 mt-3">
+        {% for section, blocks in grouped_data %}
+          <div class="prep-summary-item">
+            <h3 class="h6 mb-3">{{ section }}</h3>
+            <div class="d-flex flex-column gap-3">
+              {% for block in blocks %}
+                <div class="package-review-block">
+                  <div class="d-flex flex-wrap justify-content-between gap-2 mb-2">
+                    <div>
+                      <strong>{{ block.document.original_file_name or block.document.file_name }}</strong>
+                      <div class="text-muted small">Source document</div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('documents.detail', document_id=block.document.id) }}">Document</a>
+                      <a class="btn btn-sm btn-outline-primary" href="{{ url_for('compiler.document_detail', document_id=block.document.id) }}">Review</a>
+                    </div>
+                  </div>
+                  {% if block.rows %}
+                    <dl class="row mb-0">
+                      {% for row in block.rows %}
+                        <dt class="col-sm-4">{{ row.label }}</dt>
+                        <dd class="col-sm-8">
+                          {% if row.json_text %}
+                            <pre class="mb-0"><code>{{ row.json_text }}</code></pre>
+                          {% else %}
+                            {{ row.value if row.value is not none else "" }}
+                            {% if row.confidence is not none %}
+                              <span class="confidence-badge {{ confidence_badge_class(row.confidence) }} ms-2">{{ confidence_badge_label(row.confidence) }}</span>
+                            {% endif %}
+                          {% endif %}
+                        </dd>
+                      {% endfor %}
+                    </dl>
+                  {% else %}
+                    <pre class="mb-0"><code>{{ block.json_text }}</code></pre>
+                  {% endif %}
+                </div>
+              {% endfor %}
+            </div>
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">No extracted data is available for this package yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

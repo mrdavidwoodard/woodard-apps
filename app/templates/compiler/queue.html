@@ -4,7 +4,7 @@
 {% block title %}Compiler Queue | Woodard Apps{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Compiler Queue", "Documents pending reviewer approval, correction, or escalation.") }}
+{{ ui.page_header("Compiler Queue", "Document-level review queue. Package review opens from extracted intake packages.") }}
 
 <div class="table-responsive">
   <table class="table table-striped align-middle">
@@ -39,6 +39,9 @@
           </td>
           <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
           <td class="text-end">
+            {% if document.tax_return.status in ["organizer_review_pending", "exceptions_pending"] %}
+              <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('compiler.package_review', package_id=document.tax_return_id) }}">Package</a>
+            {% endif %}
             <a class="btn btn-sm btn-outline-primary" href="{{ url_for('compiler.document_detail', document_id=document.id) }}">Review</a>
           </td>
         </tr>

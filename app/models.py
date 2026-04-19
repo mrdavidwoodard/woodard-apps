@@ -113,6 +113,7 @@ class TaxReturn(db.Model):
     is_ready_for_extraction = db.Column(db.Boolean, nullable=False, default=False)
     extraction_started_at = db.Column(db.DateTime(timezone=True), nullable=True)
     extraction_completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    review_completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
     prep_started_at = db.Column(db.DateTime(timezone=True), nullable=True)
     prep_completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)

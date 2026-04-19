@@ -394,6 +394,13 @@ dl dd {
   margin-bottom: 0.85rem;
 }
 
+.package-review-block {
+  background: #ffffff;
+  border: 1px solid var(--wa-border-soft);
+  border-radius: 0.65rem;
+  padding: 1rem;
+}
+
 .compiler-viewer-card {
   position: sticky;
   top: 5.5rem;
