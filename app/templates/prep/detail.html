@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+
+{% block title %}Prep Packet | Woodard Apps{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-column gap-3">
+  <div class="d-flex justify-content-between align-items-start gap-3">
+    <div>
+      <h1 class="h3 mb-1">Prep Packet: {{ tax_return.client.display_name }}</h1>
+      <p class="text-muted mb-0">{{ tax_return.tax_year }} {{ tax_return.return_type }} return</p>
+    </div>
+    <a class="btn btn-outline-secondary" href="{{ url_for('prep.queue') }}">Back to Prep Queue</a>
+  </div>
+
+  <div class="row g-3">
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Client Info</h2>
+          <dl class="row mb-0">
+            <dt class="col-sm-4">Name</dt>
+            <dd class="col-sm-8">{{ tax_return.client.display_name }}</dd>
+            <dt class="col-sm-4">Type</dt>
+            <dd class="col-sm-8">{{ tax_return.client.client_type }}</dd>
+            <dt class="col-sm-4">Contact</dt>
+            <dd class="col-sm-8">{{ tax_return.client.primary_contact_name or "" }}</dd>
+          </dl>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-lg-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Return Info</h2>
+          <dl class="row mb-0">
+            <dt class="col-sm-4">Status</dt>
+            <dd class="col-sm-8">{{ tax_return.status }}</dd>
+            <dt class="col-sm-4">Due Date</dt>
+            <dd class="col-sm-8">{{ tax_return.due_date.strftime("%Y-%m-%d") if tax_return.due_date else "" }}</dd>
+            <dt class="col-sm-4">Assigned</dt>
+            <dd class="col-sm-8">{{ tax_return.assigned_user.full_name if tax_return.assigned_user else "Unassigned" }}</dd>
+            <dt class="col-sm-4">Reviewer</dt>
+            <dd class="col-sm-8">{{ tax_return.reviewer_user.full_name if tax_return.reviewer_user else "Unassigned" }}</dd>
+            <dt class="col-sm-4">Prep Started</dt>
+            <dd class="col-sm-8">{{ tax_return.prep_started_at.strftime("%Y-%m-%d %I:%M %p") if tax_return.prep_started_at else "" }}</dd>
+            <dt class="col-sm-4">Prep Completed</dt>
+            <dd class="col-sm-8">{{ tax_return.prep_completed_at.strftime("%Y-%m-%d %I:%M %p") if tax_return.prep_completed_at else "" }}</dd>
+          </dl>
+          <div class="d-flex flex-wrap gap-2 mt-3">
+            <form method="post" action="{{ url_for('prep.start', tax_return_id=tax_return.id) }}">
+              <button class="btn btn-primary" type="submit">Start Prep</button>
+            </form>
+            <form method="post" action="{{ url_for('prep.complete', tax_return_id=tax_return.id) }}">
+              <button class="btn btn-success" type="submit">Complete Prep</button>
+            </form>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5">Approved Documents</h2>
+      <div class="table-responsive">
+        <table class="table table-striped align-middle mb-0">
+          <thead>
+            <tr>
+              <th scope="col">Document Type</th>
+              <th scope="col">File Name</th>
+              <th scope="col">Extraction</th>
+              <th scope="col"></th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in document_rows %}
+              {% set document = row.document %}
+              {% set latest_result = row.latest_result %}
+              <tr>
+                <td>{{ document.document_type }}</td>
+                <td>{{ document.original_file_name or document.file_name }}</td>
+                <td>
+                  {% if latest_result %}
+                    {{ latest_result.document_type_detected or document.document_type }}
+                    {% if latest_result.confidence_score is not none %}
+                      · {{ "%.0f"|format(latest_result.confidence_score * 100) }}%
+                    {% endif %}
+                  {% else %}
+                    <span class="text-muted">No result</span>
+                  {% endif %}
+                </td>
+                <td class="text-end">
+                  <a class="btn btn-sm btn-outline-primary" href="{{ url_for('documents.detail', document_id=document.id) }}">Document Detail</a>
+                </td>
+              </tr>
+            {% else %}
+              <tr>
+                <td class="text-muted text-center py-4" colspan="4">No approved documents are available.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5">Prep Summary</h2>
+      <div class="d-flex flex-column gap-3">
+        {% for item in prep_summary %}
+          <div class="border rounded p-3">
+            <h3 class="h6">{{ item.document.document_type }} · {{ item.document.original_file_name or item.document.file_name }}</h3>
+            {% if item.kind in ["w2", "1099_int"] %}
+              <dl class="row mb-0">
+                {% for label, value in item.fields.items() %}
+                  <dt class="col-sm-4">{{ label }}</dt>
+                  <dd class="col-sm-8">{{ value if value is not none else "" }}</dd>
+                {% endfor %}
+              </dl>
+            {% elif item.kind == "other" %}
+              <pre class="bg-light border rounded p-3 mb-0"><code>{{ item.json_text }}</code></pre>
+            {% else %}
+              <p class="text-muted mb-0">No extraction result is available for this approved document.</p>
+            {% endif %}
+          </div>
+        {% else %}
+          <p class="text-muted mb-0">No approved extraction results are available.</p>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

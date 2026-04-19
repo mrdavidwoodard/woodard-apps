@@ -110,6 +110,8 @@ class TaxReturn(db.Model):
     reviewer_user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True, index=True)
     due_date = db.Column(db.Date, nullable=True)
     sharepoint_return_folder_url = db.Column(db.String(1024), nullable=True)
+    prep_started_at = db.Column(db.DateTime(timezone=True), nullable=True)
+    prep_completed_at = db.Column(db.DateTime(timezone=True), nullable=True)
     created_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now)
     updated_at = db.Column(db.DateTime(timezone=True), nullable=False, default=utc_now, onupdate=utc_now)
 

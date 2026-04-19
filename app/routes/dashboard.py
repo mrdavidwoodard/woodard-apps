@@ -16,6 +16,8 @@ def dashboard():
         "extraction_jobs": ExtractionJob.query.count(),
         "extraction_results": ExtractionResult.query.count(),
         "documents_pending_review": Document.query.filter_by(status="review_pending").count(),
+        "returns_ready_for_prep": TaxReturn.query.filter_by(status="ready_for_prep").count(),
+        "returns_in_prep": TaxReturn.query.filter_by(status="in_prep").count(),
     }
     recent_documents = Document.query.order_by(Document.uploaded_at.desc()).limit(5).all()
     return render_template("dashboard.html", counts=counts, recent_documents=recent_documents)

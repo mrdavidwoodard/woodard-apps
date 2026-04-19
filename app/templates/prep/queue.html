@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Prep Queue | Woodard Apps{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-start gap-3 mb-3">
+  <div>
+    <h1 class="h3 mb-1">Prep Queue</h1>
+    <p class="text-muted mb-0">Returns approved by review and ready for Lacerte preparation.</p>
+  </div>
+</div>
+
+<div class="table-responsive">
+  <table class="table table-striped align-middle">
+    <thead>
+      <tr>
+        <th scope="col">Client</th>
+        <th scope="col">Tax Year</th>
+        <th scope="col">Return Type</th>
+        <th scope="col">Assigned User</th>
+        <th scope="col">Due Date</th>
+        <th scope="col">Approved Docs</th>
+        <th scope="col"></th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+        {% set tax_return = row.tax_return %}
+        <tr>
+          <td>{{ tax_return.client.display_name }}</td>
+          <td>{{ tax_return.tax_year }}</td>
+          <td>{{ tax_return.return_type }}</td>
+          <td>{{ tax_return.assigned_user.full_name if tax_return.assigned_user else "Unassigned" }}</td>
+          <td>{{ tax_return.due_date.strftime("%Y-%m-%d") if tax_return.due_date else "" }}</td>
+          <td>{{ row.approved_document_count }}</td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-primary" href="{{ url_for('prep.detail', tax_return_id=tax_return.id) }}">Open Prep Packet</a>
+          </td>
+        </tr>
+      {% else %}
+        <tr>
+          <td class="text-muted text-center py-4" colspan="7">No returns are ready for prep.</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

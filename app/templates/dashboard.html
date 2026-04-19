@@ -58,6 +58,22 @@
         </div>
       </div>
     </div>
+    <div class="col-12 col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">Ready for Prep</div>
+          <div class="display-6">{{ counts.returns_ready_for_prep }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="text-muted small">In Prep</div>
+          <div class="display-6">{{ counts.returns_in_prep }}</div>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div class="card">
@@ -130,6 +146,15 @@
           <h2 class="h5">Compiler</h2>
           <p class="text-muted">{{ counts.documents_pending_review }} documents are pending review.</p>
           <a class="btn btn-primary" href="{{ url_for('compiler.queue') }}">Open Compiler Queue</a>
+        </div>
+      </div>
+    </div>
+    <div class="col-12 col-md-4">
+      <div class="card h-100">
+        <div class="card-body">
+          <h2 class="h5">Prep</h2>
+          <p class="text-muted">{{ counts.returns_ready_for_prep }} returns are ready for prep.</p>
+          <a class="btn btn-primary" href="{{ url_for('prep.queue') }}">Open Prep Queue</a>
         </div>
       </div>
     </div>
