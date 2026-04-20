@@ -181,8 +181,11 @@ def upload():
             flash("Organizer uploaded and matched to Intake Package.", "success")
         elif match_result["is_organizer"] and match_result["already_satisfied"]:
             flash("Organizer uploaded; requirement already satisfied.", "info")
+        elif match_result["matched"]:
+            requirement_name = match_result["requirement"].name or match_result["requirement"].display_name
+            flash(f"Document uploaded and matched to expected item: {requirement_name}.", "success")
         else:
-            flash("Document uploaded and matched to Intake Package.", "success")
+            flash("Document uploaded but no expected item match was found.", "info")
         return redirect(url_for("packages.detail", package_id=tax_return.id))
 
     return render_template("ingester/upload.html")

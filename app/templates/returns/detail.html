@@ -166,6 +166,12 @@
         </div>
         <div class="col-12 col-md-6 col-xl">
           <div class="prep-summary-item h-100">
+            <div class="summary-label">Unmatched Documents</div>
+            <div class="summary-value">{{ package_stats.unmatched_documents|length }}</div>
+          </div>
+        </div>
+        <div class="col-12 col-md-6 col-xl">
+          <div class="prep-summary-item h-100">
             <div class="summary-label">Review Pending</div>
             <div class="summary-value">{{ package_stats.review_pending }}</div>
           </div>
@@ -250,6 +256,38 @@
       </div>
     </div>
   </div>
+
+  {% if package_stats.unmatched_documents %}
+    <div class="card">
+      <div class="card-body">
+        {{ ui.section_title("Unmatched Documents", "Uploaded documents that do not currently satisfy an expected intake item.") }}
+        <div class="table-responsive mt-3">
+          <table class="table table-striped align-middle mb-0">
+            <thead>
+              <tr>
+                <th scope="col">Document Type</th>
+                <th scope="col">File Name</th>
+                <th scope="col">Uploaded</th>
+                <th scope="col"></th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for document in package_stats.unmatched_documents %}
+                <tr>
+                  <td>{{ document.document_type }}</td>
+                  <td>{{ document.original_file_name or document.file_name }}</td>
+                  <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
+                  <td class="text-end">
+                    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('documents.detail', document_id=document.id) }}">Details</a>
+                  </td>
+                </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 
   <div class="card">
     <div class="card-body">

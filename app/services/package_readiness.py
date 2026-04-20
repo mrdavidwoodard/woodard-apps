@@ -58,16 +58,35 @@ DOCUMENT_TYPE_SECTION_MAP = {
     "other": "General",
 }
 
+GENERIC_DOCUMENT_TYPES = {"", "source_document", "other"}
+
+FILENAME_DOCUMENT_TYPE_HINTS = [
+    ("1099_int", ("1099-int", "1099_int", "1099int", "interest")),
+    ("1099_div", ("1099-div", "1099_div", "1099div", "dividend")),
+    ("1099_b", ("1099-b", "1099_b", "1099b", "brokerage")),
+    ("w2", ("w-2", "w2")),
+    ("k1", ("k-1", "k_1", "k1")),
+    ("1098", ("1098", "mortgage")),
+]
+
 
 def normalize_document_type(document_type):
     return (document_type or "").strip().lower().replace("-", "_").replace(" ", "_")
+
+
+def infer_document_type_from_filename(filename):
+    normalized_filename = (filename or "").strip().lower().replace("_", "-")
+    for document_type, hints in FILENAME_DOCUMENT_TYPE_HINTS:
+        if any(hint in normalized_filename for hint in hints):
+            return document_type
+    return None
 
 
 def is_organizer_document(document_type, filename=None):
     normalized_type = normalize_document_type(document_type)
     normalized_filename = (filename or "").strip().lower()
     return normalized_type == "organizer" or (
-        normalized_type in {"", "source_document", "other"} and "organizer" in normalized_filename
+        normalized_type in GENERIC_DOCUMENT_TYPES and "organizer" in normalized_filename
     )
 
 
@@ -262,6 +281,21 @@ def find_or_create_requirement_for_document(package, document):
     return requirement
 
 
+def find_matching_expected_requirement(package, document_type):
+    normalized_type = normalize_document_type(document_type)
+    if not normalized_type:
+        return None
+    return (
+        package.package_document_requirements.filter_by(
+            document_type=normalized_type,
+            is_expected_this_year=True,
+            is_received=False,
+        )
+        .order_by(PackageDocumentRequirement.is_required.desc(), PackageDocumentRequirement.id.asc())
+        .first()
+    )
+
+
 def find_or_create_organizer_requirement(package):
     create_default_sections(package)
     client_info_section = OrganizerSection.query.filter_by(name="Client Information").first()
@@ -303,8 +337,11 @@ def find_or_create_organizer_requirement(package):
 
 
 def match_uploaded_document_to_requirement(package, document):
-    """Attach an uploaded document to the matching intake requirement without overwriting satisfied organizer matches."""
-    if is_organizer_document(document.document_type, document.original_file_name or document.file_name):
+    """Attach an uploaded document to an expected intake item using deterministic matching rules."""
+    filename = document.original_file_name or document.file_name
+    uploaded_type = normalize_document_type(document.document_type)
+
+    if is_organizer_document(uploaded_type, filename):
         document.document_type = "organizer"
         requirement = find_or_create_organizer_requirement(package)
         already_satisfied = requirement.is_received
@@ -319,26 +356,48 @@ def match_uploaded_document_to_requirement(package, document):
             "already_satisfied": already_satisfied,
             "matched": not already_satisfied,
             "is_organizer": True,
+            "unmatched": False,
+            "matched_document_type": "organizer",
         }
 
-    requirement = find_or_create_requirement_for_document(package, document)
-    already_satisfied = requirement.is_received and requirement.document_id is not None
-    if not already_satisfied:
-        requirement.document = document
-        requirement.is_received = True
-        requirement.received_at = requirement.received_at or utc_now()
-        if hasattr(requirement, "status"):
-            requirement.status = "received"
+    inferred_type = infer_document_type_from_filename(filename)
+    candidate_types = []
+    if uploaded_type not in GENERIC_DOCUMENT_TYPES:
+        candidate_types.append(uploaded_type)
+    if inferred_type and inferred_type not in candidate_types:
+        candidate_types.append(inferred_type)
+
+    for candidate_type in candidate_types:
+        requirement = find_matching_expected_requirement(package, candidate_type)
+        if requirement:
+            document.document_type = candidate_type
+            requirement.document = document
+            requirement.is_received = True
+            requirement.received_at = requirement.received_at or utc_now()
+            if hasattr(requirement, "status"):
+                requirement.status = "received"
+            return {
+                "requirement": requirement,
+                "already_satisfied": False,
+                "matched": True,
+                "is_organizer": False,
+                "unmatched": False,
+                "matched_document_type": candidate_type,
+            }
+
     return {
-        "requirement": requirement,
-        "already_satisfied": already_satisfied,
-        "matched": not already_satisfied,
+        "requirement": None,
+        "already_satisfied": False,
+        "matched": False,
         "is_organizer": False,
+        "unmatched": True,
+        "matched_document_type": None,
     }
 
 
 def match_document_to_requirement(package, document):
-    return match_uploaded_document_to_requirement(package, document)["requirement"]
+    result = match_uploaded_document_to_requirement(package, document)
+    return result["requirement"]
 
 
 def sync_requirements_from_documents(package):
@@ -446,6 +505,11 @@ def recalculate_package_readiness(package):
 
 def package_document_stats(package):
     documents = package.documents.all()
+    matched_document_ids = {
+        requirement.document_id
+        for requirement in package.package_document_requirements.all()
+        if requirement.document_id
+    }
     summary = completeness_summary(package)
     summary.update(
         {
@@ -458,6 +522,9 @@ def package_document_stats(package):
                 expectation_source="prior_year"
             ).count(),
             "prior_year_package": get_prior_year_client_work(package.client_id, package.tax_year),
+            "unmatched_documents": [
+                document for document in documents if document.id not in matched_document_ids
+            ],
         }
     )
     return summary
