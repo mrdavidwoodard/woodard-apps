@@ -1,3 +1,5 @@
+import re
+
 from app import db
 from app.models import OrganizerSection, PackageDocumentRequirement, TaxReturn, utc_now
 
@@ -86,6 +88,93 @@ def infer_document_type_from_filename(filename):
 
 def detect_document_type_from_filename(filename):
     return infer_document_type_from_filename(filename)
+
+
+CONTENT_DOCUMENT_TYPE_RULES = [
+    ("w2", "high", ("form w-2", "form w 2", "wage and tax statement")),
+    ("w2", "medium", ("w-2", "w 2")),
+    ("1099_int", "high", ("form 1099-int",)),
+    ("1099_int", "medium", ("interest income",)),
+    ("1099_div", "high", ("form 1099-div",)),
+    ("1099_div", "medium", ("dividends and distributions",)),
+    ("1099_b", "high", ("form 1099-b",)),
+    ("1099_b", "medium", ("proceeds from broker and barter exchange transactions",)),
+    ("k1", "high", ("schedule k-1",)),
+    ("1098", "high", ("form 1098",)),
+    ("1098", "medium", ("mortgage interest statement",)),
+    ("1099_nec", "high", ("form 1099-nec",)),
+    ("1099_nec", "medium", ("nonemployee compensation",)),
+    ("organizer", "high", ("this tax organizer",)),
+    ("organizer", "medium", ("organizer",)),
+]
+
+
+def normalize_classification_text(text):
+    normalized = (text or "").lower()
+    normalized = normalized.replace("\r", " ").replace("\n", " ")
+    normalized = re.sub(r"[\u2010-\u2015]", "-", normalized)
+    normalized = re.sub(r"[^a-z0-9$.\-/ ]+", " ", normalized)
+    normalized = re.sub(r"\s+", " ", normalized).strip()
+    return normalized
+
+
+def extract_pdf_text(file_path):
+    try:
+        from pypdf import PdfReader
+    except ImportError:
+        try:
+            from PyPDF2 import PdfReader
+        except ImportError:
+            return "", "PDF text extraction failed: pypdf is not installed."
+
+    try:
+        reader = PdfReader(str(file_path))
+        pages = []
+        for page in reader.pages:
+            pages.append(page.extract_text() or "")
+        text = normalize_classification_text(" ".join(pages))
+        if not text:
+            return "", "PDF opened successfully but no extractable text was found."
+        return text, "PDF text extracted successfully."
+    except Exception as exc:
+        return "", f"PDF text extraction failed: {exc}"
+
+
+def classify_document_text(text):
+    normalized_text = normalize_classification_text(text)
+    if not normalized_text:
+        return {
+            "document_type": None,
+            "confidence": None,
+            "notes": "No extractable PDF text found.",
+        }
+
+    for document_type, confidence, phrases in CONTENT_DOCUMENT_TYPE_RULES:
+        for phrase in phrases:
+            normalized_phrase = normalize_classification_text(phrase)
+            if normalized_phrase in normalized_text:
+                return {
+                    "document_type": document_type,
+                    "confidence": confidence,
+                    "notes": f"Content rule matched '{phrase}'.",
+                }
+
+    if "wages" in normalized_text and "tax withheld" in normalized_text:
+        return {
+            "document_type": "w2",
+            "confidence": "medium",
+            "notes": "Content rule matched combined W-2 clues: 'wages' and 'tax withheld'.",
+        }
+
+    return {
+        "document_type": None,
+        "confidence": None,
+        "notes": "PDF text extracted but no supported content rule matched.",
+    }
+
+
+def detect_document_type_from_text(text):
+    return classify_document_text(text)["document_type"]
 
 
 def is_organizer_document(document_type, filename=None):

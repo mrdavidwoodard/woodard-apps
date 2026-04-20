@@ -26,6 +26,12 @@
             <dd class="col-sm-8">{{ document.detected_document_type or "Not detected" }}</dd>
             <dt class="col-sm-4">Matching Method</dt>
             <dd class="col-sm-8">{{ (document.matching_method or "manual").replace("_", " ").title() }}</dd>
+            <dt class="col-sm-4">Classification Confidence</dt>
+            <dd class="col-sm-8">{{ (document.classification_confidence or "Not set").title() }}</dd>
+            <dt class="col-sm-4">Classification Notes</dt>
+            <dd class="col-sm-8">{{ document.classification_notes or "None" }}</dd>
+            <dt class="col-sm-4">Source File Name</dt>
+            <dd class="col-sm-8">{{ document.source_file_name or document.original_file_name or document.file_name }}</dd>
             <dt class="col-sm-4">Source</dt>
             <dd class="col-sm-8">{{ document.source }}</dd>
             <dt class="col-sm-4">Uploaded</dt>
@@ -89,6 +95,17 @@
           </div>
         </div>
       </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-body">
+      <h2 class="h5">Extracted Text Preview</h2>
+      {% if document.extracted_text %}
+        <pre class="bg-light border rounded p-3 mb-0"><code>{{ document.extracted_text[:2000] }}{% if document.extracted_text|length > 2000 %}...{% endif %}</code></pre>
+      {% else %}
+        <p class="text-muted mb-0">No extractable PDF text found.</p>
+      {% endif %}
     </div>
   </div>
 

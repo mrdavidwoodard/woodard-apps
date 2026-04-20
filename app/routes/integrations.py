@@ -10,7 +10,9 @@ from app.models import Client, Document, TaxReturn, User
 from app.routes.ingester import allowed_file, get_upload_destination
 from app.services import sharepoint
 from app.services.package_readiness import (
+    classify_document_text,
     detect_document_type_from_filename,
+    extract_pdf_text,
     match_uploaded_document_to_requirement,
     recalculate_package_readiness,
 )
@@ -136,8 +138,18 @@ def taxdome_upload_document():
                 secure_filename(uploaded_file.filename),
             )
             uploaded_file.save(destination)
-            detected_type = detect_document_type_from_filename(uploaded_file.filename)
+            filename_detected_type = detect_document_type_from_filename(uploaded_file.filename)
+            logger.info(
+                "TaxDome document classification filename_result file=%s detected_type=%s",
+                uploaded_file.filename,
+                filename_detected_type or "none",
+            )
+            detected_type = filename_detected_type
             document_type = detected_type or "source_document"
+            classification_confidence = "high" if filename_detected_type else None
+            classification_notes = (
+                f"Filename rule matched '{filename_detected_type}'." if filename_detected_type else "Filename rules did not identify a supported type."
+            )
 
             document = Document(
                 tax_return=package,
@@ -147,6 +159,8 @@ def taxdome_upload_document():
                 source_file_name=uploaded_file.filename,
                 detected_document_type=detected_type,
                 matching_method="filename_rule" if detected_type else "unmatched",
+                classification_confidence=classification_confidence,
+                classification_notes=classification_notes,
                 file_name=destination.name,
                 original_file_name=uploaded_file.filename,
                 stored_file_path=stored_file_path,
@@ -183,7 +197,69 @@ def taxdome_upload_document():
                 package.taxdome_job_id = taxdome_job_id
 
             match_result = match_uploaded_document_to_requirement(package, document)
-            document.matching_method = "filename_rule" if match_result["matched"] and detected_type else "unmatched"
+            logger.info(
+                "TaxDome document matching initial_result document_id=%s matched=%s requirement_id=%s",
+                document.id,
+                match_result["matched"],
+                match_result["requirement"].id if match_result["requirement"] else None,
+            )
+            if not match_result["matched"] and document.original_file_type == "pdf":
+                logger.info("TaxDome document classification running_pdf_text_extraction document_id=%s", document.id)
+                extracted_text, extraction_note = extract_pdf_text(destination)
+                document.extracted_text = extracted_text or None
+                logger.info(
+                    "TaxDome document classification extracted_text_length document_id=%s length=%s note=%s",
+                    document.id,
+                    len(extracted_text or ""),
+                    extraction_note or "none",
+                )
+                content_result = classify_document_text(extracted_text)
+                logger.info(
+                    "TaxDome document classification content_result document_id=%s detected_type=%s confidence=%s notes=%s",
+                    document.id,
+                    content_result["document_type"] or "none",
+                    content_result["confidence"] or "none",
+                    content_result["notes"],
+                )
+                if extraction_note:
+                    document.classification_notes = f"{document.classification_notes} {extraction_note}".strip()
+                if content_result["document_type"]:
+                    document.document_type = content_result["document_type"]
+                    document.detected_document_type = content_result["document_type"]
+                    document.matching_method = "content_rule"
+                    document.classification_confidence = content_result["confidence"]
+                    document.classification_notes = f"{extraction_note or ''} {content_result['notes']}".strip()
+                    match_result = match_uploaded_document_to_requirement(package, document)
+                    logger.info(
+                        "TaxDome document matching content_result document_id=%s matched=%s requirement_id=%s",
+                        document.id,
+                        match_result["matched"],
+                        match_result["requirement"].id if match_result["requirement"] else None,
+                    )
+                elif not extraction_note:
+                    document.classification_notes = content_result["notes"]
+                else:
+                    document.classification_notes = f"{extraction_note} {content_result['notes']}".strip()
+            elif not match_result["matched"]:
+                logger.info(
+                    "TaxDome document classification skipped_content_fallback document_id=%s original_file_type=%s",
+                    document.id,
+                    document.original_file_type,
+                )
+
+            if match_result["matched"]:
+                if document.matching_method not in {"content_rule", "filename_rule"}:
+                    document.matching_method = "filename_rule" if filename_detected_type else "content_rule"
+            else:
+                document.matching_method = "unmatched"
+            logger.info(
+                "TaxDome document classification final_result document_id=%s detected_type=%s matching_method=%s confidence=%s matched=%s",
+                document.id,
+                document.detected_document_type or "none",
+                document.matching_method or "none",
+                document.classification_confidence or "none",
+                match_result["matched"],
+            )
             recalculate_package_readiness(package)
             db.session.commit()
         except Exception:
@@ -198,9 +274,10 @@ def taxdome_upload_document():
 
         if match_result["matched"]:
             requirement_name = match_result["requirement"].name or match_result["requirement"].display_name
-            flash(f"Document automatically matched to expected item: {requirement_name}.", "success")
+            match_source = "content-based detection" if document.matching_method == "content_rule" else "filename rule"
+            flash(f"Document automatically matched to expected item: {requirement_name} ({match_source}).", "success")
         else:
-            flash("Document uploaded but could not be automatically matched.", "info")
+            flash("Document uploaded but could not be automatically classified.", "info")
         return redirect(url_for("packages.detail", package_id=package.id))
 
     return render_template("integrations/taxdome_upload_document.html", packages=packages)
