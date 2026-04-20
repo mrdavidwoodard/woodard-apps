@@ -16,10 +16,24 @@ from app.services.package_readiness import (
     match_uploaded_document_to_requirement,
     recalculate_package_readiness,
 )
+from app.services.structured_extraction import (
+    SUPPORTED_STRUCTURED_TYPES,
+    canonical_structured_type,
+    run_structured_extraction_for_document,
+)
 from app.services.taxdome import apply_taxdome_organizer_request_event, find_or_create_client
 
 integrations_bp = Blueprint("integrations", __name__, url_prefix="/integrations")
 logger = logging.getLogger(__name__)
+
+
+def append_classification_note(document, note):
+    if not note:
+        return
+    existing_notes = document.classification_notes or ""
+    if note in existing_notes:
+        return
+    document.classification_notes = f"{existing_notes} {note}".strip()
 
 
 @integrations_bp.route("/taxdome/organizer-request", methods=["GET", "POST"])
@@ -252,6 +266,48 @@ def taxdome_upload_document():
                     document.matching_method = "filename_rule" if filename_detected_type else "content_rule"
             else:
                 document.matching_method = "unmatched"
+
+            if match_result["matched"] and document.original_file_type == "pdf":
+                normalized_document_type = canonical_structured_type(document.detected_document_type or document.document_type)
+                if normalized_document_type in SUPPORTED_STRUCTURED_TYPES:
+                    if not document.extracted_text:
+                        logger.info(
+                            "TaxDome structured extraction extracting_pdf_text document_id=%s document_type=%s",
+                            document.id,
+                            normalized_document_type,
+                        )
+                        extracted_text, extraction_note = extract_pdf_text(destination)
+                        document.extracted_text = extracted_text or None
+                        append_classification_note(document, extraction_note)
+                        logger.info(
+                            "TaxDome structured extraction extracted_text_length document_id=%s length=%s note=%s",
+                            document.id,
+                            len(extracted_text or ""),
+                            extraction_note or "none",
+                        )
+
+                    if document.extracted_text:
+                        structured_result = run_structured_extraction_for_document(document)
+                        if structured_result:
+                            logger.info(
+                                "TaxDome structured extraction completed document_id=%s result_id=%s confidence=%s status=%s",
+                                document.id,
+                                structured_result.id,
+                                structured_result.confidence_score,
+                                structured_result.validation_status,
+                            )
+                    else:
+                        logger.info(
+                            "TaxDome structured extraction skipped_no_text document_id=%s document_type=%s",
+                            document.id,
+                            normalized_document_type,
+                        )
+                else:
+                    logger.info(
+                        "TaxDome structured extraction skipped_unsupported_type document_id=%s document_type=%s",
+                        document.id,
+                        normalized_document_type or "none",
+                    )
             logger.info(
                 "TaxDome document classification final_result document_id=%s detected_type=%s matching_method=%s confidence=%s matched=%s",
                 document.id,

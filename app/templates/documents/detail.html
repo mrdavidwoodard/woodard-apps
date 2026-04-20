@@ -147,6 +147,8 @@
     <div class="card-body">
       <h2 class="h5">Latest Extraction Result</h2>
       {% if latest_result %}
+        {% set extracted = latest_result.extracted_json or {} %}
+        {% set fields = extracted.get("fields") if extracted is mapping else none %}
         <dl class="row">
           <dt class="col-sm-3">Detected Type</dt>
           <dd class="col-sm-9">{{ latest_result.document_type_detected }}</dd>
@@ -156,8 +158,59 @@
           <dd class="col-sm-9">{{ latest_result.validation_status }}</dd>
           <dt class="col-sm-3">Model</dt>
           <dd class="col-sm-9">{{ latest_result.model_name }}</dd>
+          {% if latest_result.validation_messages_json %}
+            <dt class="col-sm-3">Extraction Notes</dt>
+            <dd class="col-sm-9">
+              <ul class="mb-0 ps-3">
+                {% for message in latest_result.validation_messages_json %}
+                  <li>{{ message }}</li>
+                {% endfor %}
+              </ul>
+            </dd>
+          {% endif %}
         </dl>
-        <pre class="bg-light border rounded p-3 mb-0"><code>{{ latest_result.extracted_json | tojson(indent=2) }}</code></pre>
+        {% if fields %}
+          <div class="table-responsive">
+            <table class="table table-striped align-middle mb-0">
+              <thead>
+                <tr>
+                  <th scope="col">Field</th>
+                  <th scope="col">Value</th>
+                  <th scope="col">Confidence</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for field_name, payload in fields.items() %}
+                  {% set value = payload.get("value") if payload is mapping else payload %}
+                  {% set confidence = payload.get("confidence") if payload is mapping else none %}
+                  <tr>
+                    <td>{{ field_name.replace("_", " ").title() }}</td>
+                    <td>{{ value if value is not none else "" }}</td>
+                    <td>
+                      {% if confidence is not none %}
+                        {% if confidence >= 0.90 %}
+                          <span class="badge confidence-high">High</span>
+                        {% elif confidence >= 0.75 %}
+                          <span class="badge confidence-medium">Medium</span>
+                        {% else %}
+                          <span class="badge confidence-low">Low</span>
+                        {% endif %}
+                      {% else %}
+                        <span class="text-muted">Not set</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <details class="mt-3">
+            <summary class="text-muted">Raw extraction JSON</summary>
+            <pre class="bg-light border rounded p-3 mt-2 mb-0"><code>{{ latest_result.extracted_json | tojson(indent=2) }}</code></pre>
+          </details>
+        {% else %}
+          <pre class="bg-light border rounded p-3 mb-0"><code>{{ latest_result.extracted_json | tojson(indent=2) }}</code></pre>
+        {% endif %}
       {% else %}
         <p class="text-muted mb-0">No extraction result exists yet.</p>
       {% endif %}
