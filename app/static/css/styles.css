@@ -333,6 +333,7 @@ body {
 }
 
 .status-approved,
+.status-complete_ready_for_extraction,
 .status-ready_for_prep {
   background: #e4f7ea;
   color: #157348;
@@ -353,6 +354,7 @@ body {
   color: #a33a32;
 }
 
+.status-complete_ready_for_extraction,
 .status-ready_for_prep {
   border-color: #9ed9b4;
   box-shadow: inset 0 0 0 1px rgba(21, 115, 72, 0.08);

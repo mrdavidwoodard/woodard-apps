@@ -20,6 +20,8 @@
     {% set label = "Review Pending" %}
   {% elif value == "ready_for_prep" %}
     {% set label = "Ready for Prep" %}
+  {% elif value == "complete_ready_for_extraction" %}
+    {% set label = "Complete - Ready for Extraction" %}
   {% else %}
     {% set label = value.replace("_", " ").title() %}
   {% endif %}

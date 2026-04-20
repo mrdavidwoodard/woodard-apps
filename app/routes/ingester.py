@@ -1,13 +1,18 @@
 import logging
 from pathlib import Path
 
-from flask import Blueprint, current_app, flash, render_template, request, url_for
+from flask import Blueprint, current_app, flash, redirect, render_template, request, url_for
 from flask_login import current_user, login_required
 from werkzeug.utils import secure_filename
 
 from app import db
 from app.models import Client, Document, TaxReturn
-from app.services.package_readiness import match_document_to_requirement, recalculate_package_readiness
+from app.services.package_readiness import (
+    create_default_requirements,
+    is_organizer_document,
+    match_uploaded_document_to_requirement,
+    recalculate_package_readiness,
+)
 from app.services import sharepoint
 
 ingester_bp = Blueprint("ingester", __name__, url_prefix="/ingester")
@@ -69,6 +74,10 @@ def upload():
             flash("Unsupported file type. Please upload a PDF, PNG, JPG, or JPEG file.", "danger")
             return render_template("ingester/upload.html", form_data=form_data)
 
+        if is_organizer_document(document_type, uploaded_file.filename):
+            document_type = "organizer"
+            form_data["document_type"] = document_type
+
         try:
             tax_year_int = int(tax_year)
         except ValueError:
@@ -104,6 +113,8 @@ def upload():
                 assigned_user=current_user,
             )
             db.session.add(tax_return)
+            db.session.flush()
+            create_default_requirements(tax_return)
         elif not tax_return.work_type:
             tax_return.work_type = work_type
         try:
@@ -152,7 +163,7 @@ def upload():
 
             db.session.add(document)
             db.session.flush()
-            match_document_to_requirement(tax_return, document)
+            match_result = match_uploaded_document_to_requirement(tax_return, document)
             recalculate_package_readiness(tax_return)
             db.session.commit()
         except Exception:
@@ -166,10 +177,12 @@ def upload():
             return render_template("ingester/upload.html", form_data=form_data)
 
         logger.info("Ingester upload saved: client_id=%s tax_return_id=%s document_id=%s", client.id, tax_return.id, document.id)
-        flash("Document uploaded and intake record created.", "success")
-        return render_template(
-            "ingester/upload.html",
-            detail_url=url_for("packages.detail", package_id=tax_return.id),
-        )
+        if match_result["is_organizer"] and match_result["matched"]:
+            flash("Organizer uploaded and matched to Intake Package.", "success")
+        elif match_result["is_organizer"] and match_result["already_satisfied"]:
+            flash("Organizer uploaded; requirement already satisfied.", "info")
+        else:
+            flash("Document uploaded and matched to Intake Package.", "success")
+        return redirect(url_for("packages.detail", package_id=tax_return.id))
 
     return render_template("ingester/upload.html")

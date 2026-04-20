@@ -63,6 +63,14 @@ def normalize_document_type(document_type):
     return (document_type or "").strip().lower().replace("-", "_").replace(" ", "_")
 
 
+def is_organizer_document(document_type, filename=None):
+    normalized_type = normalize_document_type(document_type)
+    normalized_filename = (filename or "").strip().lower()
+    return normalized_type == "organizer" or (
+        normalized_type in {"", "source_document", "other"} and "organizer" in normalized_filename
+    )
+
+
 def requirement_display_name(document_type):
     labels = {
         "organizer": "Organizer",
@@ -184,23 +192,88 @@ def find_or_create_requirement_for_document(package, document):
     return requirement
 
 
-def match_document_to_requirement(package, document):
-    requirement = find_or_create_requirement_for_document(package, document)
-    requirement.document = document
-    requirement.is_received = True
-    requirement.received_at = requirement.received_at or utc_now()
+def find_or_create_organizer_requirement(package):
+    create_default_sections(package)
+    client_info_section = OrganizerSection.query.filter_by(name="Client Information").first()
+    organizer_query = package.package_document_requirements.filter_by(
+        document_type="organizer",
+        is_required=True,
+    )
+    if client_info_section:
+        organizer_query = organizer_query.filter_by(section_id=client_info_section.id)
+
+    requirement = organizer_query.filter_by(is_received=False).order_by(PackageDocumentRequirement.id.asc()).first()
+    if requirement:
+        return requirement
+
+    existing_requirement = organizer_query.order_by(PackageDocumentRequirement.id.asc()).first()
+    if not existing_requirement:
+        existing_requirement = (
+            package.package_document_requirements.filter_by(document_type="organizer", is_required=True)
+            .order_by(PackageDocumentRequirement.id.asc())
+            .first()
+        )
+    if existing_requirement:
+        return existing_requirement
+
+    requirement = PackageDocumentRequirement(
+        tax_return=package,
+        section=client_info_section or OrganizerSection.query.filter_by(name="General").first(),
+        name="Organizer",
+        document_type="organizer",
+        display_name="Organizer",
+        is_required=True,
+        is_received=False,
+    )
+    db.session.add(requirement)
+    db.session.flush()
     return requirement
+
+
+def match_uploaded_document_to_requirement(package, document):
+    """Attach an uploaded document to the matching intake requirement without overwriting satisfied organizer matches."""
+    if is_organizer_document(document.document_type, document.original_file_name or document.file_name):
+        document.document_type = "organizer"
+        requirement = find_or_create_organizer_requirement(package)
+        already_satisfied = requirement.is_received
+        if not already_satisfied:
+            requirement.document = document
+            requirement.is_received = True
+            requirement.received_at = requirement.received_at or utc_now()
+            if hasattr(requirement, "status"):
+                requirement.status = "received"
+        return {
+            "requirement": requirement,
+            "already_satisfied": already_satisfied,
+            "matched": not already_satisfied,
+            "is_organizer": True,
+        }
+
+    requirement = find_or_create_requirement_for_document(package, document)
+    already_satisfied = requirement.is_received and requirement.document_id is not None
+    if not already_satisfied:
+        requirement.document = document
+        requirement.is_received = True
+        requirement.received_at = requirement.received_at or utc_now()
+        if hasattr(requirement, "status"):
+            requirement.status = "received"
+    return {
+        "requirement": requirement,
+        "already_satisfied": already_satisfied,
+        "matched": not already_satisfied,
+        "is_organizer": False,
+    }
+
+
+def match_document_to_requirement(package, document):
+    return match_uploaded_document_to_requirement(package, document)["requirement"]
 
 
 def sync_requirements_from_documents(package):
     changed = False
     for document in package.documents.all():
-        requirement = find_or_create_requirement_for_document(package, document)
-        if not requirement.is_received or requirement.document_id != document.id:
-            requirement.document = document
-            requirement.is_received = True
-            requirement.received_at = requirement.received_at or document.uploaded_at or utc_now()
-            changed = True
+        result = match_uploaded_document_to_requirement(package, document)
+        changed = changed or result["matched"]
     return changed
 
 
@@ -273,12 +346,17 @@ def missing_required_items(package):
 def recalculate_package_readiness(package):
     sync_requirements_from_documents(package)
     summary = completeness_summary(package)
-    can_be_marked_ready = package.status in {"new", "documents_received", "waiting_on_client"}
+    can_be_marked_ready = package.status in {
+        "new",
+        "documents_received",
+        "waiting_on_client",
+        "complete_ready_for_extraction",
+    }
     package.is_ready_for_extraction = summary["is_complete"] and can_be_marked_ready
     package.is_waiting_on_client = not summary["is_complete"] and can_be_marked_ready
-    if package.is_ready_for_extraction and package.status in {"new", "waiting_on_client"}:
-        package.status = "documents_received"
-    elif package.is_waiting_on_client and package.status in {"new", "documents_received"}:
+    if package.is_ready_for_extraction and can_be_marked_ready:
+        package.status = "complete_ready_for_extraction"
+    elif package.is_waiting_on_client and package.status in {"new", "documents_received", "complete_ready_for_extraction"}:
         package.status = "waiting_on_client"
     return summary
 

@@ -191,7 +191,12 @@ class TaxReturn(db.Model):
     @property
     def is_ready_for_extraction(self):
         """Calculate extraction readiness from organizer section completion and workflow state."""
-        can_be_marked_ready = self.status in {"new", "documents_received", "waiting_on_client"}
+        can_be_marked_ready = self.status in {
+            "new",
+            "documents_received",
+            "waiting_on_client",
+            "complete_ready_for_extraction",
+        }
         return can_be_marked_ready and self.required_sections_complete
 
     @is_ready_for_extraction.setter
