@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% import "_components.html" as ui %}
+
+{% block title %}Simulate TaxDome Document Intake | Woodard Apps{% endblock %}
+
+{% block content %}
+{{ ui.page_header("Simulate TaxDome Document Intake", "Upload a TaxDome-delivered file and let filename rules match it to expected intake items.") }}
+
+<div class="row g-3">
+  <div class="col-12 col-xl-8">
+    <form method="post" enctype="multipart/form-data" class="card">
+      <div class="card-body">
+        <h2 class="h5 mb-3">TaxDome File Event</h2>
+        <div class="row g-3">
+          <div class="col-12">
+            <label class="form-label" for="package_id">Existing Client Work / Intake Package</label>
+            {% set selected_package_id = form_data.package_id if form_data else '' %}
+            <select class="form-select" id="package_id" name="package_id">
+              <option value="">Find by client and tax year</option>
+              {% for package in packages %}
+                <option value="{{ package.id }}" {% if selected_package_id|string == package.id|string %}selected{% endif %}>
+                  {{ package.client.display_name }} - {{ package.tax_year }} - {{ package.work_type or package.return_type }}
+                </option>
+              {% endfor %}
+            </select>
+            <div class="form-text">Prefer selecting an existing TaxDome-created package when available.</div>
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="client_display_name">Client Display Name</label>
+            <input class="form-control" id="client_display_name" name="client_display_name" type="text" value="{{ form_data.client_display_name if form_data else '' }}">
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label" for="tax_year">Tax Year</label>
+            <input class="form-control" id="tax_year" name="tax_year" type="number" min="1900" max="2200" value="{{ form_data.tax_year if form_data else '' }}">
+          </div>
+          <div class="col-12 col-md-3">
+            <label class="form-label" for="taxdome_client_id">TaxDome Client ID</label>
+            <input class="form-control" id="taxdome_client_id" name="taxdome_client_id" type="text" value="{{ form_data.taxdome_client_id if form_data else '' }}">
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="taxdome_job_id">TaxDome Job ID</label>
+            <input class="form-control" id="taxdome_job_id" name="taxdome_job_id" type="text" value="{{ form_data.taxdome_job_id if form_data else '' }}">
+          </div>
+          <div class="col-12 col-md-6">
+            <label class="form-label" for="document">TaxDome File</label>
+            <input class="form-control" id="document" name="document" type="file" accept=".pdf,.png,.jpg,.jpeg" required>
+            <div class="form-text">No document type selection here. Filename rules will infer the type.</div>
+          </div>
+        </div>
+
+        <div class="mt-4 d-flex gap-2">
+          <button class="btn btn-primary" type="submit">Simulate File Intake</button>
+          <a class="btn btn-outline-secondary" href="{{ url_for('dashboard.dashboard') }}">Cancel</a>
+        </div>
+      </div>
+    </form>
+  </div>
+
+  <div class="col-12 col-xl-4">
+    <div class="card">
+      <div class="card-body">
+        {{ ui.section_title("Filename Rules", "Current deterministic matching rules.") }}
+        <ul class="mb-0 mt-3">
+          <li>w2 -> W-2</li>
+          <li>1099-int / 1099_int / 1099int -> 1099-INT</li>
+          <li>1099-div / 1099_div / 1099div -> 1099-DIV</li>
+          <li>1099-b / 1099_b / 1099b -> 1099-B</li>
+          <li>1099-nec / 1099_nec / 1099nec -> 1099-NEC</li>
+          <li>k-1 / k1 -> K-1</li>
+          <li>1098 -> 1098 Mortgage Interest</li>
+          <li>organizer -> Organizer</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

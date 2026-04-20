@@ -20,6 +20,12 @@
             <dd class="col-sm-8">{{ document.document_type }}</dd>
             <dt class="col-sm-4">Document Status</dt>
             <dd class="col-sm-8">{{ ui.status_badge(document.status) }}</dd>
+            <dt class="col-sm-4">Source System</dt>
+            <dd class="col-sm-8">{{ (document.source_system or document.source or "internal").replace("_", " ").title() }}</dd>
+            <dt class="col-sm-4">Detected Type</dt>
+            <dd class="col-sm-8">{{ document.detected_document_type or "Not detected" }}</dd>
+            <dt class="col-sm-4">Matching Method</dt>
+            <dd class="col-sm-8">{{ (document.matching_method or "manual").replace("_", " ").title() }}</dd>
             <dt class="col-sm-4">Source</dt>
             <dd class="col-sm-8">{{ document.source }}</dd>
             <dt class="col-sm-4">Uploaded</dt>

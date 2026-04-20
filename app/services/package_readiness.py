@@ -64,9 +64,11 @@ FILENAME_DOCUMENT_TYPE_HINTS = [
     ("1099_int", ("1099-int", "1099_int", "1099int", "interest")),
     ("1099_div", ("1099-div", "1099_div", "1099div", "dividend")),
     ("1099_b", ("1099-b", "1099_b", "1099b", "brokerage")),
+    ("1099_nec", ("1099-nec", "1099_nec", "1099nec", "nec")),
     ("w2", ("w-2", "w2")),
     ("k1", ("k-1", "k_1", "k1")),
     ("1098", ("1098", "mortgage")),
+    ("organizer", ("organizer",)),
 ]
 
 
@@ -80,6 +82,10 @@ def infer_document_type_from_filename(filename):
         if any(hint in normalized_filename for hint in hints):
             return document_type
     return None
+
+
+def detect_document_type_from_filename(filename):
+    return infer_document_type_from_filename(filename)
 
 
 def is_organizer_document(document_type, filename=None):

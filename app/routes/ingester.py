@@ -12,12 +12,26 @@ from app.services.package_readiness import (
     is_organizer_document,
     match_uploaded_document_to_requirement,
     recalculate_package_readiness,
+    requirement_display_name,
 )
 from app.services import sharepoint
 
 ingester_bp = Blueprint("ingester", __name__, url_prefix="/ingester")
 logger = logging.getLogger(__name__)
 ALLOWED_EXTENSIONS = {"pdf", "png", "jpg", "jpeg"}
+
+OTHER_DOCUMENT_TYPE_OPTIONS = [
+    ("organizer", "Organizer"),
+    ("w2", "W-2"),
+    ("1099_int", "1099-INT"),
+    ("1099_div", "1099-DIV"),
+    ("1099_b", "1099-B"),
+    ("1099_nec", "1099-NEC"),
+    ("1098", "1098 Mortgage Interest"),
+    ("k1", "K-1"),
+    ("source_document", "Source Document"),
+    ("other", "Other / Unmatched"),
+]
 
 
 def allowed_file(filename):
@@ -48,9 +62,91 @@ def get_upload_destination(client_name, tax_year, original_filename):
     return destination, relative_path.as_posix()
 
 
+def build_package_upload_context(package):
+    if not package:
+        return None
+
+    section_summaries = []
+    missing_items = []
+    received_items = []
+
+    for requirement in package.package_document_requirements.all():
+        if not requirement.section:
+            continue
+        item = {
+            "id": requirement.id,
+            "document_type": requirement.document_type,
+            "label": requirement.name or requirement.display_name or requirement_display_name(requirement.document_type),
+            "section": requirement.section.name,
+            "is_received": requirement.is_received,
+            "is_required": requirement.is_required,
+            "is_expected_this_year": requirement.is_expected_this_year,
+        }
+        if requirement.is_expected_this_year and requirement.is_required and not requirement.is_received:
+            missing_items.append(item)
+        elif requirement.is_expected_this_year and requirement.is_received:
+            received_items.append(item)
+
+    sections_by_id = {
+        requirement.section.id: requirement.section
+        for requirement in package.package_document_requirements.all()
+        if requirement.section
+    }
+    for section in sorted(
+        sections_by_id.values(),
+        key=lambda section: (section.display_order, section.name),
+    ):
+        requirements = [
+            requirement
+            for requirement in package.package_document_requirements.filter_by(section_id=section.id).all()
+            if requirement.is_expected_this_year
+        ]
+        if requirements:
+            section_summaries.append({"section": section, "requirements": requirements})
+
+    missing_types = {item["document_type"] for item in missing_items}
+    other_options = [
+        {"value": value, "label": label}
+        for value, label in OTHER_DOCUMENT_TYPE_OPTIONS
+        if value not in missing_types
+    ]
+
+    return {
+        "package": package,
+        "missing_items": missing_items,
+        "received_items": received_items,
+        "section_summaries": section_summaries,
+        "missing_type_options": [
+            {"value": item["document_type"], "label": item["label"], "section": item["section"]}
+            for item in missing_items
+        ],
+        "other_type_options": other_options,
+    }
+
+
+def render_upload_form(form_data=None, package=None):
+    return render_template(
+        "ingester/upload.html",
+        form_data=form_data,
+        upload_context=build_package_upload_context(package),
+        other_document_type_options=[
+            {"value": value, "label": label}
+            for value, label in OTHER_DOCUMENT_TYPE_OPTIONS
+        ],
+    )
+
+
 @ingester_bp.route("/upload", methods=["GET", "POST"])
 @login_required
 def upload():
+    package_id = request.values.get("package_id")
+    package_context = None
+    if package_id:
+        try:
+            package_context = db.session.get(TaxReturn, int(package_id))
+        except ValueError:
+            package_context = None
+
     if request.method == "POST":
         client_name = request.form.get("client_display_name", "").strip()
         client_type = request.form.get("client_type", "").strip()
@@ -61,18 +157,33 @@ def upload():
         uploaded_file = request.files.get("document")
         form_data = request.form.to_dict()
 
+        if package_context:
+            client_name = package_context.client.display_name
+            client_type = package_context.client.client_type
+            tax_year = str(package_context.tax_year)
+            work_type = package_context.work_type or package_context.return_type
+            form_data.update(
+                {
+                    "package_id": str(package_context.id),
+                    "client_display_name": client_name,
+                    "client_type": client_type,
+                    "tax_year": tax_year,
+                    "work_type": work_type,
+                }
+            )
+
         required_values = [client_name, client_type, tax_year, work_type, document_type, source]
         if not all(required_values):
             flash("Client, intake package, and document details are required.", "danger")
-            return render_template("ingester/upload.html", form_data=form_data)
+            return render_upload_form(form_data=form_data, package=package_context)
 
         if not uploaded_file or not uploaded_file.filename:
             flash("Please choose a tax document to upload.", "danger")
-            return render_template("ingester/upload.html", form_data=form_data)
+            return render_upload_form(form_data=form_data, package=package_context)
 
         if not allowed_file(uploaded_file.filename):
             flash("Unsupported file type. Please upload a PDF, PNG, JPG, or JPEG file.", "danger")
-            return render_template("ingester/upload.html", form_data=form_data)
+            return render_upload_form(form_data=form_data, package=package_context)
 
         if is_organizer_document(document_type, uploaded_file.filename):
             document_type = "organizer"
@@ -82,41 +193,45 @@ def upload():
             tax_year_int = int(tax_year)
         except ValueError:
             flash("Tax year must be a valid number.", "danger")
-            return render_template("ingester/upload.html", form_data=form_data)
+            return render_upload_form(form_data=form_data, package=package_context)
 
         if tax_year_int < 1900 or tax_year_int > 2200:
             flash("Tax year must be between 1900 and 2200.", "danger")
-            return render_template("ingester/upload.html", form_data=form_data)
+            return render_upload_form(form_data=form_data, package=package_context)
 
         stored_file_path = None
 
-        client = Client.query.filter(Client.display_name.ilike(client_name)).first()
-        if not client:
-            client = Client(display_name=client_name, client_type=client_type)
-            db.session.add(client)
-            db.session.flush()
+        if package_context:
+            tax_return = package_context
+            client = tax_return.client
         else:
-            client.client_type = client_type
+            client = Client.query.filter(Client.display_name.ilike(client_name)).first()
+            if not client:
+                client = Client(display_name=client_name, client_type=client_type)
+                db.session.add(client)
+                db.session.flush()
+            else:
+                client.client_type = client_type
 
-        tax_return = TaxReturn.query.filter_by(
-            client=client,
-            tax_year=tax_year_int,
-            return_type=work_type,
-        ).first()
-        if not tax_return:
-            tax_return = TaxReturn(
+            tax_return = TaxReturn.query.filter_by(
                 client=client,
                 tax_year=tax_year_int,
                 return_type=work_type,
-                work_type=work_type,
-                status="new",
-                assigned_user=current_user,
-            )
-            db.session.add(tax_return)
-            db.session.flush()
-            initialize_requirements_for_package(tax_return)
-        elif not tax_return.work_type:
-            tax_return.work_type = work_type
+            ).first()
+            if not tax_return:
+                tax_return = TaxReturn(
+                    client=client,
+                    tax_year=tax_year_int,
+                    return_type=work_type,
+                    work_type=work_type,
+                    status="new",
+                    assigned_user=current_user,
+                )
+                db.session.add(tax_return)
+                db.session.flush()
+                initialize_requirements_for_package(tax_return)
+            elif not tax_return.work_type:
+                tax_return.work_type = work_type
         try:
             destination, stored_file_path = get_upload_destination(client.display_name, tax_year_int, uploaded_file.filename)
             uploaded_file.save(destination)
@@ -129,6 +244,8 @@ def upload():
                 tax_return=tax_return,
                 client=client,
                 source=source,
+                source_system="internal",
+                source_file_name=uploaded_file.filename,
                 file_name=destination.name,
                 original_file_name=uploaded_file.filename,
                 stored_file_path=stored_file_path,
@@ -174,7 +291,7 @@ def upload():
                     saved_path.unlink()
             logger.exception("Failed to save ingester upload.")
             flash("The upload could not be saved. Please try again.", "danger")
-            return render_template("ingester/upload.html", form_data=form_data)
+            return render_upload_form(form_data=form_data, package=package_context)
 
         logger.info("Ingester upload saved: client_id=%s tax_return_id=%s document_id=%s", client.id, tax_return.id, document.id)
         if match_result["is_organizer"] and match_result["matched"]:
@@ -188,4 +305,16 @@ def upload():
             flash("Document uploaded but no expected item match was found.", "info")
         return redirect(url_for("packages.detail", package_id=tax_return.id))
 
-    return render_template("ingester/upload.html")
+    if package_context:
+        form_data = {
+            "package_id": package_context.id,
+            "client_display_name": package_context.client.display_name,
+            "client_type": package_context.client.client_type,
+            "tax_year": package_context.tax_year,
+            "work_type": package_context.work_type or package_context.return_type,
+            "source": "manual_upload",
+            "document_type": "",
+        }
+        return render_upload_form(form_data=form_data, package=package_context)
+
+    return render_upload_form()

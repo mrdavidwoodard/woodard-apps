@@ -15,6 +15,7 @@
       {% if tax_return.status in ["organizer_review_pending", "exceptions_pending"] %}
         <a class="btn btn-outline-primary" href="{{ url_for('compiler.package_review', package_id=tax_return.id) }}">Open Package Review</a>
       {% endif %}
+      <a class="btn btn-outline-primary" href="{{ url_for('ingester.upload', package_id=tax_return.id) }}">Upload Document</a>
       <a class="btn btn-outline-secondary" href="{{ url_for('packages.index') }}">Back to Client Work</a>
     </div>
   {% endset %}
@@ -266,6 +267,8 @@
             <thead>
               <tr>
                 <th scope="col">Document Type</th>
+                <th scope="col">Detected Type</th>
+                <th scope="col">Matching Method</th>
                 <th scope="col">File Name</th>
                 <th scope="col">Uploaded</th>
                 <th scope="col"></th>
@@ -275,6 +278,8 @@
               {% for document in package_stats.unmatched_documents %}
                 <tr>
                   <td>{{ document.document_type }}</td>
+                  <td>{{ document.detected_document_type or "Not detected" }}</td>
+                  <td>{{ (document.matching_method or "unmatched").replace("_", " ").title() }}</td>
                   <td>{{ document.original_file_name or document.file_name }}</td>
                   <td>{{ document.uploaded_at.strftime("%Y-%m-%d %I:%M %p") if document.uploaded_at else "" }}</td>
                   <td class="text-end">
@@ -297,6 +302,8 @@
           <thead>
             <tr>
               <th scope="col">Document Type</th>
+              <th scope="col">Detected Type</th>
+              <th scope="col">Matching Method</th>
               <th scope="col">File Name</th>
               <th scope="col">Document Status</th>
               <th scope="col">SharePoint</th>
@@ -309,6 +316,8 @@
             {% for document in documents %}
               <tr>
                 <td>{{ document.document_type }}</td>
+                <td>{{ document.detected_document_type or "" }}</td>
+                <td>{{ (document.matching_method or "").replace("_", " ").title() }}</td>
                 <td>{{ document.original_file_name or document.file_name }}</td>
                 <td>{{ ui.status_badge(document.status) }}</td>
                 <td>
@@ -345,7 +354,7 @@
               </tr>
             {% else %}
               <tr>
-                <td class="text-muted text-center py-4" colspan="7">No documents have been uploaded for this client work.</td>
+                <td class="text-muted text-center py-4" colspan="9">No documents have been uploaded for this client work.</td>
               </tr>
             {% endfor %}
           </tbody>

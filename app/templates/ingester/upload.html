@@ -4,9 +4,10 @@
 {% block title %}Ingester | Woodard Apps{% endblock %}
 
 {% block content %}
-{{ ui.page_header("Ingester", "Create a client intake record and upload the first tax document.") }}
-<div class="row">
-  <div class="col-12 col-lg-9">
+{% set header_subtitle = "Upload source documents and match them to expected intake items." if upload_context else "Create a client intake record and upload the first tax document." %}
+{{ ui.page_header("Ingester", header_subtitle) }}
+<div class="row g-3">
+  <div class="col-12 col-xl-8">
     {% if detail_url %}
       <div class="alert alert-success">
         Upload complete. <a class="alert-link" href="{{ detail_url }}">View the client work</a>.
@@ -14,11 +15,14 @@
     {% endif %}
     <form method="post" enctype="multipart/form-data" class="card">
       <div class="card-body">
+        {% if upload_context %}
+          <input type="hidden" name="package_id" value="{{ upload_context.package.id }}">
+        {% endif %}
         <h2 class="h5 mb-3">Intake Details</h2>
         <div class="row g-3">
           <div class="col-12 col-md-8">
             <label class="form-label" for="client_display_name">Client display name</label>
-            <input class="form-control" id="client_display_name" name="client_display_name" type="text" value="{{ form_data.client_display_name if form_data else '' }}" required>
+            <input class="form-control" id="client_display_name" name="client_display_name" type="text" value="{{ form_data.client_display_name if form_data else '' }}" {% if upload_context %}readonly{% endif %} required>
           </div>
           <div class="col-12 col-md-4">
             <label class="form-label" for="client_type">Client type</label>
@@ -32,7 +36,7 @@
           </div>
           <div class="col-12 col-md-4">
             <label class="form-label" for="tax_year">Tax year</label>
-            <input class="form-control" id="tax_year" name="tax_year" type="number" min="1900" max="2200" value="{{ form_data.tax_year if form_data else '' }}" required>
+            <input class="form-control" id="tax_year" name="tax_year" type="number" min="1900" max="2200" value="{{ form_data.tax_year if form_data else '' }}" {% if upload_context %}readonly{% endif %} required>
           </div>
           <div class="col-12 col-md-4">
             <label class="form-label" for="work_type">Work Type</label>
@@ -47,15 +51,26 @@
           </div>
           <div class="col-12 col-md-4">
             <label class="form-label" for="document_type">Document type</label>
-            {% set selected_document_type = form_data.document_type if form_data else 'source_document' %}
+            {% set selected_document_type = form_data.document_type if form_data else '' %}
             <select class="form-select" id="document_type" name="document_type" required>
-              <option value="source_document" {% if selected_document_type == 'source_document' %}selected{% endif %}>Source document</option>
-              <option value="w2" {% if selected_document_type == 'w2' %}selected{% endif %}>W-2</option>
-              <option value="1099_int" {% if selected_document_type == '1099_int' %}selected{% endif %}>1099-INT</option>
-              <option value="1099" {% if selected_document_type == '1099' %}selected{% endif %}>1099</option>
-              <option value="organizer" {% if selected_document_type == 'organizer' %}selected{% endif %}>Organizer</option>
-              <option value="other" {% if selected_document_type == 'other' %}selected{% endif %}>Other</option>
+              <option value="" {% if not selected_document_type %}selected{% endif %}>Select document type</option>
+              {% if upload_context and upload_context.missing_type_options %}
+                <optgroup label="Missing Expected Items">
+                  {% for option in upload_context.missing_type_options %}
+                    <option value="{{ option.value }}" {% if selected_document_type == option.value %}selected{% endif %}>{{ option.label }} - {{ option.section }}</option>
+                  {% endfor %}
+                </optgroup>
+              {% endif %}
+              <optgroup label="Other Document Types">
+                {% set fallback_options = upload_context.other_type_options if upload_context else other_document_type_options %}
+                {% for option in fallback_options %}
+                  <option value="{{ option.value }}" {% if selected_document_type == option.value %}selected{% endif %}>{{ option.label }}</option>
+                {% endfor %}
+              </optgroup>
             </select>
+            {% if upload_context and upload_context.missing_items %}
+              <div class="form-text">Selecting a missing expected item will auto-match this upload to the Intake Package.</div>
+            {% endif %}
           </div>
           <div class="col-12 col-md-6">
             <label class="form-label" for="source">Source</label>
@@ -75,9 +90,57 @@
         </div>
         <div class="mt-4 d-flex gap-2">
           <button class="btn btn-primary" type="submit">Upload Document</button>
+          {% if upload_context %}
+            <a class="btn btn-outline-secondary" href="{{ url_for('packages.detail', package_id=upload_context.package.id) }}">Cancel</a>
+          {% endif %}
         </div>
       </div>
     </form>
   </div>
+  {% if upload_context %}
+    <div class="col-12 col-xl-4">
+      <div class="card mb-3">
+        <div class="card-body">
+          {{ ui.section_title("Package Context", upload_context.package.client.display_name ~ " · " ~ upload_context.package.tax_year ~ " · " ~ (upload_context.package.work_type or upload_context.package.return_type)) }}
+          {% if upload_context.missing_items %}
+            <p class="text-muted mb-2">This package is still expecting:</p>
+            <ul class="mb-0">
+              {% for item in upload_context.missing_items %}
+                <li>{{ item.label }} <span class="text-muted">({{ item.section }})</span></li>
+              {% endfor %}
+            </ul>
+          {% else %}
+            <p class="text-muted mb-0">No required expected items are currently missing.</p>
+          {% endif %}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-body">
+          {{ ui.section_title("Expected Items", "Current package checklist grouped by section.") }}
+          <div class="d-flex flex-column gap-3 mt-3">
+            {% for section_summary in upload_context.section_summaries %}
+              <div>
+                <h3 class="h6 mb-2">{{ section_summary.section.name }}</h3>
+                <ul class="list-unstyled mb-0">
+                  {% for requirement in section_summary.requirements %}
+                    <li class="d-flex justify-content-between gap-2 py-1 border-bottom">
+                      <span>{{ requirement.name or requirement.display_name }}</span>
+                      {% if requirement.is_received %}
+                        <span class="badge status-badge status-approved">Received</span>
+                      {% elif requirement.is_required %}
+                        <span class="badge status-badge status-waiting_on_client">Missing</span>
+                      {% else %}
+                        <span class="badge status-badge status-new">Optional</span>
+                      {% endif %}
+                    </li>
+                  {% endfor %}
+                </ul>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}

@@ -29,9 +29,14 @@
     <div>
       {{ ui.section_title("Development Tools", "Internal simulation paths for future integrations.") }}
     </div>
-    <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('integrations.taxdome_organizer_request') }}">
-      Simulate TaxDome Organizer Request
-    </a>
+    <div class="d-flex flex-wrap gap-2">
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('integrations.taxdome_organizer_request') }}">
+        Simulate TaxDome Organizer Request
+      </a>
+      <a class="btn btn-sm btn-outline-secondary" href="{{ url_for('integrations.taxdome_upload_document') }}">
+        Simulate TaxDome Document Intake
+      </a>
+    </div>
   </div>
 </div>
 
