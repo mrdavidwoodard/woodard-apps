@@ -2,7 +2,7 @@ from flask import Blueprint, current_app, flash, redirect, render_template, url_
 from flask_login import login_required
 
 from app import db
-from app.models import Document, TaxReturn, utc_now
+from app.models import Document, PackageDocumentRequirement, TaxReturn, utc_now
 from app.routes.documents import run_mock_extraction_for_document
 from app.services.package_readiness import (
     package_document_stats,
@@ -11,6 +11,7 @@ from app.services.package_readiness import (
 )
 
 packages_bp = Blueprint("packages", __name__, url_prefix="/packages")
+requirements_bp = Blueprint("requirements", __name__, url_prefix="/requirements")
 
 
 @packages_bp.route("")
@@ -103,4 +104,32 @@ def run_extraction(package_id):
         flash(f"Skipped {skipped_count} document(s) that already had extraction results.", "info")
     flash(f"Processed {processed_count} document(s); {failed_count} exception(s).", "info")
     flash(outcome_message, outcome_category)
+    return redirect(url_for("packages.detail", package_id=package.id))
+
+
+@requirements_bp.route("/<int:requirement_id>/not-expected", methods=["POST"])
+@login_required
+def mark_not_expected(requirement_id):
+    requirement = PackageDocumentRequirement.query.get_or_404(requirement_id)
+    package = requirement.tax_return
+    requirement.is_expected_this_year = False
+    requirement.is_required = False
+    requirement.is_confirmed_this_year = True
+    recalculate_package_readiness(package)
+    db.session.commit()
+    flash(f"{requirement.name or requirement.display_name} marked not expected this year.", "success")
+    return redirect(url_for("packages.detail", package_id=package.id))
+
+
+@requirements_bp.route("/<int:requirement_id>/expected", methods=["POST"])
+@login_required
+def mark_expected(requirement_id):
+    requirement = PackageDocumentRequirement.query.get_or_404(requirement_id)
+    package = requirement.tax_return
+    requirement.is_expected_this_year = True
+    requirement.is_required = True
+    requirement.is_confirmed_this_year = True
+    recalculate_package_readiness(package)
+    db.session.commit()
+    flash(f"{requirement.name or requirement.display_name} marked expected this year.", "success")
     return redirect(url_for("packages.detail", package_id=package.id))

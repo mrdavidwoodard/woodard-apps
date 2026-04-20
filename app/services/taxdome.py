@@ -2,7 +2,7 @@ from datetime import datetime
 
 from app import db
 from app.models import Client, TaxReturn
-from app.services.package_readiness import create_default_requirements, recalculate_package_readiness
+from app.services.package_readiness import initialize_requirements_for_package, recalculate_package_readiness
 
 
 def parse_due_date(value):
@@ -90,8 +90,7 @@ def apply_taxdome_organizer_request_event(event_data, assigned_user=None):
     if client_work_created or client_work.status == "new":
         client_work.status = "waiting_on_client"
 
-    if existing_requirement_count == 0:
-        create_default_requirements(client_work)
+    initialization = initialize_requirements_for_package(client_work)
 
     recalculate_package_readiness(client_work)
 
@@ -101,4 +100,6 @@ def apply_taxdome_organizer_request_event(event_data, assigned_user=None):
         "client_created": client_created,
         "client_work_created": client_work_created,
         "requirements_created": existing_requirement_count == 0,
+        "expectation_source": initialization["source"],
+        "prior_package": initialization["prior_package"],
     }

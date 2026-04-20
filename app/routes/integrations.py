@@ -52,6 +52,10 @@ def taxdome_organizer_request():
             if result["requirements_created"]
             else "existing organizer requirements reused"
         )
+        if result.get("expectation_source") == "prior_year" and result.get("prior_package"):
+            messages.append(f"expectations seeded from {result['prior_package'].tax_year}")
+        elif result.get("expectation_source") == "template":
+            messages.append("template expectations used")
         flash(f"Simulated TaxDome organizer request processed: {', '.join(messages)}.", "success")
         return redirect(url_for("packages.detail", package_id=result["client_work"].id))
 

@@ -174,7 +174,10 @@ class TaxReturn(db.Model):
     @property
     def required_sections_complete(self):
         """Return True when every required organizer section has all required items received."""
-        required_requirements = self.package_document_requirements.filter_by(is_required=True).all()
+        required_requirements = self.package_document_requirements.filter_by(
+            is_required=True,
+            is_expected_this_year=True,
+        ).all()
         if not required_requirements:
             return False
 
@@ -302,6 +305,9 @@ class PackageDocumentRequirement(db.Model):
     name = db.Column(db.String(120), nullable=True)
     document_type = db.Column(db.String(80), nullable=False)
     display_name = db.Column(db.String(120), nullable=False)
+    expectation_source = db.Column(db.String(50), nullable=True)
+    is_expected_this_year = db.Column(db.Boolean, nullable=False, default=True)
+    is_confirmed_this_year = db.Column(db.Boolean, nullable=False, default=False)
     is_required = db.Column(db.Boolean, nullable=False, default=True)
     is_received = db.Column(db.Boolean, nullable=False, default=False)
     received_at = db.Column(db.DateTime(timezone=True), nullable=True)

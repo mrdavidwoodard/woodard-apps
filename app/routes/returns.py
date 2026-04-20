@@ -4,7 +4,7 @@ from flask_login import current_user, login_required
 from app.models import Client, Document, TaxReturn
 from app import db
 from app.services.package_readiness import (
-    create_default_requirements,
+    initialize_requirements_for_package,
     package_document_stats,
     recalculate_package_readiness,
     requirements_for,
@@ -60,7 +60,7 @@ def create_tax_return():
         db.session.add(tax_return)
         db.session.flush()
 
-        create_default_requirements(tax_return)
+        initialize_requirements_for_package(tax_return)
         recalculate_package_readiness(tax_return)
         db.session.commit()
 

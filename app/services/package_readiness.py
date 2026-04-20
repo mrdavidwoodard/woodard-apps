@@ -1,5 +1,5 @@
 from app import db
-from app.models import OrganizerSection, PackageDocumentRequirement, utc_now
+from app.models import OrganizerSection, PackageDocumentRequirement, TaxReturn, utc_now
 
 
 DEFAULT_ORGANIZER_SECTIONS = [
@@ -27,11 +27,11 @@ def get_default_sections_for_work_type(work_type):
 
 
 DEFAULT_PACKAGE_REQUIREMENTS = [
-    ("Client Information", "organizer", "Organizer"),
-    ("Wages", "w2", "W-2"),
-    ("Interest & Dividends", "1099_int", "1099-INT"),
-    ("Capital Gains", "1099_b", "1099-B"),
-    ("K-1 Income", "k1", "K-1"),
+    ("Client Information", "organizer", "Organizer", False),
+    ("Wages", "w2", "W-2", True),
+    ("Interest & Dividends", "1099_int", "1099-INT", True),
+    ("Capital Gains", "1099_b", "1099-B", True),
+    ("K-1 Income", "k1", "K-1", True),
 ]
 
 DOCUMENT_TYPE_SECTION_MAP = {
@@ -115,7 +115,7 @@ def create_default_requirements(package):
         for requirement in package.package_document_requirements.all()
     }
 
-    for section_name, document_type, display_name in DEFAULT_PACKAGE_REQUIREMENTS:
+    for section_name, document_type, display_name, is_required in DEFAULT_PACKAGE_REQUIREMENTS:
         normalized_type = normalize_document_type(document_type)
         if normalized_type in existing_document_types:
             continue
@@ -130,11 +130,78 @@ def create_default_requirements(package):
             name=display_name,
             document_type=normalized_type,
             display_name=display_name,
-            is_required=True,
+            expectation_source="template",
+            is_expected_this_year=True,
+            is_confirmed_this_year=False,
+            is_required=is_required,
             is_received=False,
         )
         db.session.add(requirement)
     db.session.flush()
+
+
+def get_prior_year_client_work(client_id, current_tax_year):
+    return (
+        TaxReturn.query.filter_by(client_id=client_id, tax_year=current_tax_year - 1)
+        .order_by(TaxReturn.created_at.desc())
+        .first()
+    )
+
+
+def seed_requirements_from_prior_year(current_package, prior_package):
+    if not prior_package:
+        return 0
+
+    create_default_sections(current_package)
+    existing_document_types = {
+        normalize_document_type(requirement.document_type)
+        for requirement in current_package.package_document_requirements.all()
+    }
+    created_count = 0
+
+    prior_requirements = prior_package.package_document_requirements.order_by(PackageDocumentRequirement.id.asc()).all()
+    prior_document_types = [requirement.document_type for requirement in prior_requirements]
+    if not prior_document_types:
+        prior_document_types = [document.document_type for document in prior_package.documents.all()]
+
+    for document_type in prior_document_types:
+        normalized_type = normalize_document_type(document_type)
+        if not normalized_type or normalized_type in existing_document_types:
+            continue
+
+        section = organizer_section_for_document_type(normalized_type)
+        is_organizer = normalized_type == "organizer"
+        requirement = PackageDocumentRequirement(
+            tax_return=current_package,
+            section=section,
+            name=requirement_display_name(normalized_type),
+            document_type=normalized_type,
+            display_name=requirement_display_name(normalized_type),
+            expectation_source="prior_year",
+            is_expected_this_year=True,
+            is_confirmed_this_year=False,
+            is_required=not is_organizer,
+            is_received=False,
+        )
+        db.session.add(requirement)
+        existing_document_types.add(normalized_type)
+        created_count += 1
+
+    db.session.flush()
+    return created_count
+
+
+def initialize_requirements_for_package(package):
+    if package.package_document_requirements.count():
+        return {"source": "existing", "prior_package": None, "created_count": 0}
+
+    prior_package = get_prior_year_client_work(package.client_id, package.tax_year)
+    if prior_package:
+        created_count = seed_requirements_from_prior_year(package, prior_package)
+        return {"source": "prior_year", "prior_package": prior_package, "created_count": created_count}
+
+    create_default_requirements(package)
+    return {"source": "template", "prior_package": None, "created_count": package.package_document_requirements.count()}
 
 
 def organizer_section_for_document_type(document_type):
@@ -176,7 +243,7 @@ def assign_default_sections(package):
 
 def find_or_create_requirement_for_document(package, document):
     document_type = normalize_document_type(document.document_type)
-    requirement = package.package_document_requirements.filter_by(document_type=document_type, is_required=True).first()
+    requirement = package.package_document_requirements.filter_by(document_type=document_type).first()
     if not requirement:
         section = organizer_section_for_document_type(document_type)
         requirement = PackageDocumentRequirement(
@@ -185,7 +252,10 @@ def find_or_create_requirement_for_document(package, document):
             name=requirement_display_name(document_type),
             document_type=document_type,
             display_name=requirement_display_name(document_type),
-            is_required=True,
+            expectation_source="manual",
+            is_expected_this_year=True,
+            is_confirmed_this_year=False,
+            is_required=not is_organizer_document(document_type),
         )
         db.session.add(requirement)
         db.session.flush()
@@ -197,7 +267,6 @@ def find_or_create_organizer_requirement(package):
     client_info_section = OrganizerSection.query.filter_by(name="Client Information").first()
     organizer_query = package.package_document_requirements.filter_by(
         document_type="organizer",
-        is_required=True,
     )
     if client_info_section:
         organizer_query = organizer_query.filter_by(section_id=client_info_section.id)
@@ -209,7 +278,7 @@ def find_or_create_organizer_requirement(package):
     existing_requirement = organizer_query.order_by(PackageDocumentRequirement.id.asc()).first()
     if not existing_requirement:
         existing_requirement = (
-            package.package_document_requirements.filter_by(document_type="organizer", is_required=True)
+            package.package_document_requirements.filter_by(document_type="organizer")
             .order_by(PackageDocumentRequirement.id.asc())
             .first()
         )
@@ -222,7 +291,10 @@ def find_or_create_organizer_requirement(package):
         name="Organizer",
         document_type="organizer",
         display_name="Organizer",
-        is_required=True,
+        expectation_source="manual",
+        is_expected_this_year=True,
+        is_confirmed_this_year=False,
+        is_required=False,
         is_received=False,
     )
     db.session.add(requirement)
@@ -279,7 +351,10 @@ def sync_requirements_from_documents(package):
 
 def completeness_summary(package):
     assign_default_sections(package)
-    required_requirements = package.package_document_requirements.filter_by(is_required=True).all()
+    required_requirements = package.package_document_requirements.filter_by(
+        is_required=True,
+        is_expected_this_year=True,
+    ).all()
     total_required = len(required_requirements)
     received_required = sum(1 for requirement in required_requirements if requirement.is_received)
     missing_required = total_required - received_required
@@ -306,7 +381,11 @@ def section_completion_summary(package):
             requirement
             for requirement in package.package_document_requirements.filter_by(section_id=section.id).all()
         ]
-        required = [requirement for requirement in requirements if requirement.is_required]
+        required = [
+            requirement
+            for requirement in requirements
+            if requirement.is_required and requirement.is_expected_this_year
+        ]
         received = [requirement for requirement in required if requirement.is_received]
         if not required:
             status = "not_started"
@@ -332,7 +411,11 @@ def section_completion_summary(package):
 def missing_required_items(package):
     assign_default_sections(package)
     missing = []
-    for requirement in package.package_document_requirements.filter_by(is_required=True, is_received=False).all():
+    for requirement in package.package_document_requirements.filter_by(
+        is_required=True,
+        is_expected_this_year=True,
+        is_received=False,
+    ).all():
         missing.append(
             {
                 "name": requirement.name or requirement.display_name,
@@ -371,6 +454,10 @@ def package_document_stats(package):
             "exceptions": sum(1 for document in documents if document.status == "exception"),
             "extracted": sum(1 for document in documents if document.extraction_results.count()),
             "missing_items": missing_required_items(package),
+            "seeded_from_prior_year": package.package_document_requirements.filter_by(
+                expectation_source="prior_year"
+            ).count(),
+            "prior_year_package": get_prior_year_client_work(package.client_id, package.tax_year),
         }
     )
     return summary

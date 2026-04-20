@@ -38,7 +38,7 @@ def create_app(config_name=None):
     from app.routes.informer import informer_bp
     from app.routes.ingester import ingester_bp
     from app.routes.integrations import integrations_bp
-    from app.routes.packages import packages_bp
+    from app.routes.packages import packages_bp, requirements_bp
     from app.routes.prep import prep_bp
     from app.routes.returns import returns_bp
 
@@ -54,6 +54,7 @@ def create_app(config_name=None):
     app.register_blueprint(ingester_bp)
     app.register_blueprint(integrations_bp)
     app.register_blueprint(packages_bp)
+    app.register_blueprint(requirements_bp)
     app.register_blueprint(prep_bp)
     app.register_blueprint(returns_bp)
 

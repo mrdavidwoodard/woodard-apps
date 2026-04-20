@@ -50,6 +50,15 @@
     </div>
   {% endif %}
 
+  {% if package_stats.seeded_from_prior_year %}
+    <div class="alert alert-info app-alert">
+      Expected items were seeded from {{ tax_return.tax_year - 1 }} client work.
+      {% if package_stats.prior_year_package %}
+        <a class="alert-link" href="{{ url_for('packages.detail', package_id=package_stats.prior_year_package.id) }}">Open prior-year Client Work</a>.
+      {% endif %}
+    </div>
+  {% endif %}
+
   <div class="row g-3">
     <div class="col-12 col-lg-6">
       <div class="card h-100">
@@ -89,6 +98,14 @@
             </dd>
             <dt class="col-sm-4">Ready for Extraction</dt>
             <dd class="col-sm-8">{{ "Yes" if tax_return.is_ready_for_extraction else "No" }}</dd>
+            <dt class="col-sm-4">Prior-Year Client Work</dt>
+            <dd class="col-sm-8">
+              {% if package_stats.prior_year_package %}
+                <a href="{{ url_for('packages.detail', package_id=package_stats.prior_year_package.id) }}">Yes - {{ package_stats.prior_year_package.tax_year }}</a>
+              {% else %}
+                No
+              {% endif %}
+            </dd>
             <dt class="col-sm-4">Waiting on Client</dt>
             <dd class="col-sm-8">{{ "Yes" if tax_return.is_waiting_on_client else "No" }}</dd>
             <dt class="col-sm-4">Extraction Started</dt>
@@ -125,26 +142,26 @@
       <div class="row g-3 mt-1">
         <div class="col-12 col-md-6 col-xl">
           <div class="prep-summary-item h-100">
-            <div class="summary-label">Required Documents</div>
+            <div class="summary-label">Expected Items</div>
             <div class="summary-value">{{ package_stats.total_required }}</div>
           </div>
         </div>
         <div class="col-12 col-md-6 col-xl">
           <div class="prep-summary-item h-100">
-            <div class="summary-label">Received Required</div>
+            <div class="summary-label">Received Expected</div>
             <div class="summary-value">{{ package_stats.received_required }}</div>
           </div>
         </div>
         <div class="col-12 col-md-6 col-xl">
           <div class="prep-summary-item h-100">
-            <div class="summary-label">Missing Required</div>
+            <div class="summary-label">Missing Expected</div>
             <div class="summary-value">{{ package_stats.missing_required }}</div>
           </div>
         </div>
         <div class="col-12 col-md-6 col-xl">
           <div class="prep-summary-item h-100">
-            <div class="summary-label">Package Documents</div>
-            <div class="summary-value">{{ package_stats.total }}</div>
+            <div class="summary-label">Seeded From Prior Year</div>
+            <div class="summary-value">{{ package_stats.seeded_from_prior_year }}</div>
           </div>
         </div>
         <div class="col-12 col-md-6 col-xl">
@@ -186,22 +203,38 @@
                   <thead>
                     <tr>
                       <th scope="col">Requirement</th>
+                      <th scope="col">Expected This Year</th>
                       <th scope="col">Required</th>
                       <th scope="col">Received</th>
+                      <th scope="col">Expectation Source</th>
                       <th scope="col">Matched Document</th>
+                      <th scope="col"></th>
                     </tr>
                   </thead>
                   <tbody>
                     {% for requirement in section_summary.requirements %}
                       <tr>
                         <td>{{ requirement.name or requirement.display_name }}</td>
+                        <td>{{ "Yes" if requirement.is_expected_this_year else "No" }}</td>
                         <td>{{ "Yes" if requirement.is_required else "No" }}</td>
                         <td>{{ "Yes" if requirement.is_received else "No" }}</td>
+                        <td>{{ (requirement.expectation_source or "manual").replace("_", " ").title() }}</td>
                         <td>
                           {% if requirement.document %}
                             <a href="{{ url_for('documents.detail', document_id=requirement.document.id) }}">{{ requirement.document.original_file_name or requirement.document.file_name }}</a>
                           {% else %}
                             <span class="text-muted">Missing</span>
+                          {% endif %}
+                        </td>
+                        <td class="text-end">
+                          {% if requirement.is_expected_this_year %}
+                            <form method="post" action="{{ url_for('requirements.mark_not_expected', requirement_id=requirement.id) }}">
+                              <button class="btn btn-sm btn-outline-secondary" type="submit">Not Expected</button>
+                            </form>
+                          {% else %}
+                            <form method="post" action="{{ url_for('requirements.mark_expected', requirement_id=requirement.id) }}">
+                              <button class="btn btn-sm btn-outline-primary" type="submit">Expected</button>
+                            </form>
                           {% endif %}
                         </td>
                       </tr>

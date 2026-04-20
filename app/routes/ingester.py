@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.models import Client, Document, TaxReturn
 from app.services.package_readiness import (
-    create_default_requirements,
+    initialize_requirements_for_package,
     is_organizer_document,
     match_uploaded_document_to_requirement,
     recalculate_package_readiness,
@@ -114,7 +114,7 @@ def upload():
             )
             db.session.add(tax_return)
             db.session.flush()
-            create_default_requirements(tax_return)
+            initialize_requirements_for_package(tax_return)
         elif not tax_return.work_type:
             tax_return.work_type = work_type
         try:
